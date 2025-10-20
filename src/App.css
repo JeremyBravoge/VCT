@@ -1,0 +1,144 @@
+#root {
+  margin: 0 auto;
+  padding: 0px -20px 20px; 
+  justify-content: left;
+  text-align: left;
+  background:rgb(255, 153, 29);
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+body{
+    background-color:#aa6f6f;
+}
+.Sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 230px; /* make it wider for spacing */
+  background-color: #ff0022; /* keep red */
+  padding-top: 20px; /* add spacing on top */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* push profile to bottom */
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar Menu */
+.SidebarList {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.SidebarList .row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.SidebarList .row:hover {
+  background-color: #FBC250;
+}
+
+.SidebarList #active {
+  background-color: #6e6e67;
+}
+
+/* Icon + Text */
+.row #icon {
+  flex: 0 0 24px;
+  margin-right: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.row #title {
+  flex: 1;
+  text-align: left;
+}
+/* Main content wrapper */
+
+.main-content {
+  margin-left: 230px;  /* same width as sidebar */
+  padding: 20px;       /* inner spacing */
+  background: #fff;    /* white background */
+  min-height: 100vh;   /* full height */
+}
+
+/* Profile section */
+.Sidebar .profile {
+  padding: 10px;
+  background: #6b2121; /* slightly darker red */
+  border-radius: 10px;
+  margin:10px 10px 20px;
+  display: flex;
+  align-items: left;
+}
+
+.profile .avatar {
+  width: 36px;
+  height: 36px;
+  background: #fff;
+  color: #000000;
+  font-weight: bold;
+  display: flex;
+  align-items:center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.profile .info {
+  color: #fff;
+}
+
+.profile .info p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile .info span {
+  font-size: 12px;
+  color: #ddd;
+}
