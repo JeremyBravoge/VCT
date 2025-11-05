@@ -9,6 +9,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import SchoolIcon from '@mui/icons-material/School';
 export const SidebarData = [
     
             {
@@ -56,6 +57,11 @@ export const SidebarData = [
         title:"Mailbox",
         icon:<MailIcon />,
         link:"/studentportal"
+    },
+    {
+        title:"Teacher Portal",
+        icon:<SchoolIcon />,
+        link:"/teachersportal"
     },
             {
         title:"Notifications",

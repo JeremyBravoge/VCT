@@ -6,12 +6,14 @@ function Register() {
 
   const [values, setValues] = useState({
     username: "",
+    email: "",
     password: "",
     confirmPassword: "",
   });
 
   const [errors, setErrors] = useState({
     username: "",
+    email: "",
     password: "",
     confirmPassword: "",
   });
@@ -29,8 +31,10 @@ function Register() {
 
   // validation
   const validateForm = () => {
-    const newErrors: any = {};
+    const newErrors: {[key: string]: string} = {};
     if (!values.username) newErrors.username = "Username is required";
+    if (!values.email) newErrors.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(values.email)) newErrors.email = "Email is invalid";
     if (!values.password) newErrors.password = "Password is required";
     if (values.password !== values.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
@@ -58,7 +62,7 @@ function Register() {
         body: JSON.stringify({
           full_name: "", // placeholder
           username: values.username,
-          email: "", // placeholder
+          email: values.email,
           password: values.password,
           role: "student", // default
           branch_id: null, // placeholder
@@ -83,123 +87,107 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side with image */}
-      <div className="hidden md:flex w-1/2 relative">
-        <img
-          src="/IMG_0095.JPG"
-          alt="School Portal"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/70"></div>
-        <h1 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-yellow-400 text-6xl font-bold drop-shadow-lg">
-          COHAT
-        </h1>
-      </div>
-
-      {/* Right side with form */}
-      <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white p-8 shadow-lg">
-        <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
-          {/* Logo */}
-          <div className="flex justify-center mb-4">
-            <img
-              src="/logo.JPG"
-              alt="School Logo"
-              className="h-16 w-16 object-contain"
-            />
-          </div>
-
-          <h2 className="text-2xl font-bold text-center mb-1">
-            Create Your Account
-          </h2>
-          <p className="text-sm text-gray-500 mt-2 text-center">
-            Fill in the details to register
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
+    <div className="min-h-screen flex justify-center items-center bg-white">
+      <div className="flex w-[900px] h-[550px] bg-white rounded-lg overflow-hidden shadow-lg">
+        {/* Left Panel (Image) */}
+        <div className="flex-1 bg-black">
+          <img
+            src="/IMG_0095.JPG"
+            alt="Register Image"
+            className="w-full h-full object-cover opacity-50"
+          />
+        </div>
+        {/* Right Panel (Form) */}
+        <div className="flex-1 bg-[#132b2c] text-white p-10 flex flex-col justify-center">
+          <h2 className="text-2xl font-semibold mb-2">REGISTER</h2>
+          <p className="text-[#cfd8dc] text-sm mb-8">Create your account</p>
+          <form onSubmit={handleSubmit} className="flex flex-col">
+            {/* Show server error */}
             {serverError && (
-              <p className="text-red-500 text-center text-sm">{serverError}</p>
+              <p className="text-red-500 text-center text-sm mb-4">{serverError}</p>
             )}
-
             {/* Username */}
-            <div>
-              <label className="block text-gray-700">Username</label>
-              <input
-                type="text"
-                name="username"
-                value={values.username}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-yellow-300"
-                placeholder="ADMIN/STUDENT/ACC"
-              />
-              {errors.username && (
-                <p className="text-red-500 text-sm">{errors.username}</p>
-              )}
-            </div>
-
+            <label htmlFor="username" className="text-[#cfd8dc] text-sm mb-1">Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              value={values.username}
+              onChange={handleChange}
+              className="px-3 py-2 mb-5 border-none rounded text-black placeholder-gray-500 outline-none"
+              placeholder="Username"
+              required
+            />
+            {errors.username && (
+              <p className="text-red-500 text-sm mb-2">{errors.username}</p>
+            )}
+            {/* Email */}
+            <label htmlFor="email" className="text-[#cfd8dc] text-sm mb-1">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={values.email}
+              onChange={handleChange}
+              className="px-3 py-2 mb-5 border-none rounded text-black placeholder-gray-500 outline-none"
+              placeholder="Email"
+              required
+            />
+            {errors.email && (
+              <p className="text-red-500 text-sm mb-2">{errors.email}</p>
+            )}
             {/* Password */}
-            <div>
-              <label className="block text-gray-700">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={values.password}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-yellow-300"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2 text-gray-500 text-sm"
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-red-500 text-sm">{errors.password}</p>
-              )}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-gray-700">Confirm Password</label>
+            <label htmlFor="password" className="text-[#cfd8dc] text-sm mb-1">Password</label>
+            <div className="relative mb-5">
               <input
-                type="password"
-                name="confirmPassword"
-                value={values.confirmPassword}
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                value={values.password}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring focus:ring-yellow-300"
-                placeholder="Confirm your Password"
+                className="px-3 py-2 w-full border-none rounded text-black placeholder-gray-500 outline-none"
+                placeholder="Password"
+                required
               />
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-sm">{errors.confirmPassword}</p>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2 text-gray-500 text-sm"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
             </div>
-
+            {errors.password && (
+              <p className="text-red-500 text-sm mb-2">{errors.password}</p>
+            )}
+            {/* Confirm Password */}
+            <label htmlFor="confirmPassword" className="text-[#cfd8dc] text-sm mb-1">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={values.confirmPassword}
+              onChange={handleChange}
+              className="px-3 py-2 mb-5 border-none rounded text-black placeholder-gray-500 outline-none"
+              placeholder="Confirm Password"
+              required
+            />
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-sm mb-2">{errors.confirmPassword}</p>
+            )}
             {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700"
+              className="bg-[#4caf50] text-white py-2 rounded cursor-pointer transition-colors hover:bg-[#45a049] border-none"
             >
               {loading ? "Creating..." : "Create Account"}
             </button>
-
-            {/* Redirect to Login */}
-            <p className="text-sm text-center mt-4">
-              Already have an account?{" "}
-              <Link to="/" className="text-yellow-600 hover:underline">
-                Login
-              </Link>
-            </p>
           </form>
-
-          {/* Footer */}
-          <p className="text-gray-600 text-xs text-center mt-6 pb-4">
-            © 2025 Softwares International
-          </p>
+          <Link to="/" className="text-[#cfd8dc] text-sm mt-3 no-underline hover:underline">Already have an account?</Link>
+          <div className="mt-5 text-xs text-[#b0bec5] text-center">
+            <Link to="#" className="text-[#b0bec5] no-underline hover:underline">Terms of use</Link>. <Link to="#" className="text-[#b0bec5] no-underline hover:underline">Privacy policy</Link>
+          </div>
         </div>
       </div>
     </div>

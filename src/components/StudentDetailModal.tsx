@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"; // ✅ Don't forget this import
-import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Eye, Trash2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,21 +21,56 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+interface Student {
+  student_id: string;
+  name?: string;
+  id?: string;
+  course?: string;
+  department?: string;
+  admission_date?: string;
+  status?: string;
+  feesPending?: string;
+  performance?: string;
+  first_name?: string;
+  last_name?: string;
+  id_number?: string;
+  date_of_birth?: string;
+  gender?: string;
+  age?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  county?: string;
+  nationality?: string;
+  guardian_name?: string;
+  guardian_contact?: string;
+  course_id?: string;
+  branch_id?: string;
+  intakeYear?: string;
+}
+
+
+
 export default function Students() {
-  const [students, setStudents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const itemsPerPage = 5;
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [showAdmissionForm, setShowAdmissionForm] = useState(false);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [branches, setBranches] = useState<Record<string, unknown>[]>([]);
+  const [courses, setCourses] = useState<Record<string, unknown>[]>([]);
+  const [showAdmissionForm, setShowAdmissionForm] = useState<boolean>(false);
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState<boolean>(false);
+  const [enrollingStudent, setEnrollingStudent] = useState<Student | null>(null);
+  const [modules, setModules] = useState<Record<string, unknown>[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [selectedLevel, setSelectedLevel] = useState<string>("Level 1");
+  const [editingStudent, setEditingStudent] = useState<any | null>(null);
   const navigate = useNavigate();
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
 
 
@@ -43,13 +78,10 @@ export default function Students() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        setLoading(true);
-        const response = await axios.get("http://localhost:5000/api/students"); 
+        const response = await axios.get("http://localhost:5000/api/students");
         setStudents(response.data);
       } catch (error) {
         console.error("Failed to fetch students:", error);
-      } finally {
-        setLoading(false);
       }
     };
     fetchStudents();
@@ -62,11 +94,14 @@ useEffect(() => {
   axios.get("http://localhost:5000/api/departments")
     .then(res => {
       // If your API returns { departments: [...] }
-      setDepartments(res.data.departments || []); 
+      setDepartments(res.data.departments || []);
     });
 
   axios.get("http://localhost:5000/api/branches")
     .then(res => setBranches(res.data || []));
+
+  axios.get("http://localhost:5000/api/modules")
+    .then(res => setModules(res.data || []));
 }, []);
 
 const validateStudent = (student: any) => {
@@ -112,32 +147,33 @@ const handleDeleteStudent = async (studentId: string) => {
 
 // Handle edit
 const handleEditStudent = (student: any) => {
-  // Open modal prefilled for edit
-  setSelectedStudent(student);
-  // You can add a flag in your modal to switch to edit mode
-};
-const calculateAge = (dob: string) => {
-  const birthDate = new Date(dob);
-  const diff = Date.now() - birthDate.getTime();
-  return new Date(diff).getUTCFullYear() - 1970;
+  const course_id = courses.find(c => c.name === student.course)?.id || "";
+  const branch_id = branches.find(b => b.name === student.department)?.id || "";
+  setEditingStudent({ ...student, course_id, branch_id, department_id: branch_id });
 };
 
-const handleSaveEdit = async () => {
+const handleEnrollStudent = (student: any) => {
+  setEnrollingStudent(student);
+  setShowEnrollmentModal(true);
+};
+
+const handleEnroll = async () => {
   try {
-    await axios.put(`http://localhost:5000/api/students/${editingStudent.id}`, editingStudent);
-    setStudents(prev => prev.map(s => s.id === editingStudent.id ? editingStudent : s));
-    setEditingStudent(null);
-    alert("Student updated successfully");
+    await axios.post("http://localhost:5000/api/modules/enroll", {
+      student_id: enrollingStudent.student_id,
+      module_ids: selectedModules,
+      level: selectedLevel
+    });
+    alert("Student enrolled successfully");
+    setShowEnrollmentModal(false);
+    setEnrollingStudent(null);
+    setSelectedModules([]);
+    setSelectedLevel("Level 1");
   } catch (err) {
     console.error(err);
-    alert("Failed to update student");
+    alert("Failed to enroll student");
   }
 };
-
-
-const [editingStudent, setEditingStudent] = useState<any | null>(null);
-
-
 
   // Badge helpers
   const getStatusBadge = (status: string) =>
@@ -307,13 +343,17 @@ const filteredStudents = students.filter(student => {
                   </DropdownMenuTrigger>
 
                   <DropdownMenuContent align="end" className="shadow-lg border border-gray-200 rounded-md">
-                    <DropdownMenuItem onClick={() => setSelectedStudent(student)}> 
+                    <DropdownMenuItem onClick={() => setSelectedStudent(student)}>
                       <Eye className="h-4 w-4 mr-2 text-primary" />
-                      View Details 
+                      View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setEditingStudent(student)}>
+                    <DropdownMenuItem onClick={() => handleEditStudent(student)}>
                       <Edit className="h-4 w-4 mr-2 text-accent" />
                       Edit Student
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEnrollStudent(student)}>
+                      <BookOpen className="h-4 w-4 mr-2 text-blue-600" />
+                      Enroll in Modules
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
@@ -727,8 +767,70 @@ const filteredStudents = students.filter(student => {
   />
 )}
 
+{/* Enrollment Modal */}
+<Dialog open={showEnrollmentModal} onOpenChange={setShowEnrollmentModal}>
+  <DialogContent className="max-w-lg w-full">
+    <DialogHeader>
+      <DialogTitle>
+        Enroll {enrollingStudent?.name} in Modules
+      </DialogTitle>
+    </DialogHeader>
+
+    <div className="space-y-4 mt-4">
+      {/* Select Level */}
+      <div>
+        <label className="block text-sm font-medium mb-1">Select Level</label>
+        <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select Level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Level 1">Level 1</SelectItem>
+            <SelectItem value="Level 2">Level 2</SelectItem>
+            <SelectItem value="Level 3">Level 3</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Select Modules */}
+      <div>
+        <label className="block text-sm font-medium mb-1">Select Modules</label>
+        <div className="border p-2 rounded max-h-48 overflow-y-auto">
+          {modules.map((mod: any) => (
+            <div key={mod.id} className="flex items-center gap-2 py-1">
+              <input
+                type="checkbox"
+                id={`module-${mod.id}`}
+                checked={selectedModules.includes(mod.id)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setSelectedModules(prev =>
+                    checked ? [...prev, mod.id] : prev.filter(id => id !== mod.id)
+                  );
+                }}
+              />
+              <label htmlFor={`module-${mod.id}`} className="text-sm">
+                {mod.name}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Buttons */}
+    <div className="flex justify-end gap-2 mt-6">
+      <Button variant="outline" onClick={() => setShowEnrollmentModal(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleEnroll}>
+        Enroll
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
     </div>
-    
+
   );
 }

@@ -16,6 +16,7 @@ import { TopBar } from "./components/layout/TopBar";
 import { useState } from "react";
 import StudentPerformance from "./components/StudentPerformance";
 import StudentPortal from "./components/StudentPortal";
+import { TeacherPortal as TeachersPortal } from "./components/TeachersPortal";
 
 function App() {
   const location = useLocation();
@@ -136,7 +137,16 @@ function App() {
                     <StudentPerformance/>
                   </ProtectedRoute>
                 }
-                
+
+              />
+              <Route
+                path="/teachersportal"
+                element={
+                  <ProtectedRoute>
+                    <TeachersPortal onLogout={handleLogout} onNavigate={handleNavigate} />
+                  </ProtectedRoute>
+                }
+
               />
             </Routes>
           </div>

@@ -47,8 +47,8 @@ interface PerformanceData {
 }
 
 const VocationalPerformance: React.FC = () => {
-  const [admissionNo, setAdmissionNo] = useState("VT/2025/004");
-  const [level, setLevel] = useState("Level 2");
+  const [admissionNo, setAdmissionNo] = useState("STU001");
+  const [level, setLevel] = useState("Level 1");
   const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
