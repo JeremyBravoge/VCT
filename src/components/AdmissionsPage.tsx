@@ -1,404 +1,330 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
-import { CheckCircle, FileText, User } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { User, FileText, CheckCircle, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+//
+// Zod Schema
+//
+const admissionSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  idNumber: z.string().min(1, "ID number is required"),
+  dateOfBirth: z.string().optional(),
+  gender: z.string().min(1, "Gender is required"),
+  nationality: z.string().optional(),
+  county: z.string().min(1, "County is required"),
+  phone: z.string().min(10, "Valid phone number required"),
+  email: z.string().email("Valid email required"),
+  address: z.string().optional(),
+  previousSchool: z.string().optional(),
+  graduationYear: z.string().optional(),
+  gradeObtained: z.string().optional(),
+  programChoice: z.string().min(1, "Program choice required"),
+  intakeYear: z.string().min(1, "Intake year required"),
+});
 
-
+type AdmissionFormData = z.infer<typeof admissionSchema>;
 
 const AdmissionsPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    // Step 1: Personal Information
-    firstName: '',
-    lastName: '',
-    idNumber: '',
-    dateOfBirth: '',
-    gender: '',
-    nationality: '',
-    county: '',
-    phone: '',
-    email: '',
-    address: '',
-    
-    // Step 2: Academic Information
-    previousSchool: '',
-    graduationYear: '',
-    gradeObtained: '',
-    programChoice: '',
-    intakeYear: '',
-    intakeSemester: '',
-  });
-  const [courses, setCourses] = useState<any[]>([]);
-  const [intakes, setIntakes] = useState<any[]>([]);
-
-  const { toast } = useToast();
-  
-useEffect(() => {
-  // Fetch courses
-  fetch("http://localhost:5000/api/courses")
-    .then((res) => res.json())
-    .then((data) => setCourses(data))
-    .catch((err) => console.error("Error fetching courses:", err));
-
-  // Fetch intakes
-  fetch("http://localhost:5000/api/intakes")
-    .then((res) => res.json())
-    .then((data) => setIntakes(data))
-    .catch((err) => console.error("Error fetching intakes:", err));
-}, []);
-
-
+  const [courses, setCourses] = useState<{ id: number; name: string }[]>([]);
+  const [intakes, setIntakes] = useState<{ id: number; intake_name: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const totalSteps = 2;
   const progress = (currentStep / totalSteps) * 100;
+  const { toast } = useToast();
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
 
-  const handleNextStep = () => {
-    if (validateCurrentStep()) {
-      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+  } = useForm<AdmissionFormData>({
+    resolver: zodResolver(admissionSchema),
+  });
 
-  const handlePrevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
+  // Fetch data
+  useEffect(() => {
+    fetch("http://localhost:5000/api/courses")
+      .then((res) => res.json())
+      .then((data) => setCourses(data))
+      .catch(() => toast({ title: "Error", description: "Failed to load courses", variant: "destructive" }));
 
-  const validateCurrentStep = () => {
-    switch (currentStep) {
-      case 1:
-        const requiredFields = ['firstName', 'lastName', 'idNumber', 'gender', 'county', 'phone', 'email'];
-        const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
-        if (missingFields.length > 0) {
-          toast({
-            title: "Missing Information",
-            description: "Please fill in all required fields.",
-            variant: "destructive"
-          });
-          return false;
-        }
-        return true;
-      case 2:
-        if (!formData.programChoice || !formData.intakeYear) {
-          toast({
-            title: "Missing Information",
-            description: "Please complete your academic information.",
-            variant: "destructive"
-          });
-          return false;
-        }
-        return true;
-      default:
-        return true;
-    }
-  };
-  
+    fetch("http://localhost:5000/api/intakes")
+      .then((res) => res.json())
+      .then((data) => setIntakes(data))
+      .catch(() => toast({ title: "Error", description: "Failed to load intakes", variant: "destructive" }));
+  }, []);
 
-  const handleSubmit = async () => {
+  // Submit Handler
+  const onSubmit = async (data: AdmissionFormData) => {
+    setLoading(true);
     try {
-      const submission = new FormData();
-
-      // Append form fields
-      Object.entries(formData).forEach(([key, value]) => {
-        submission.append(key, value as string);
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
       });
 
-          const response = await fetch("http://localhost:5000/api/students/register", {
-             method: "POST",
-                   headers: {
-                  "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify(formData), // send plain JSON
-                      });
+      // Append the image file if selected
+if (selectedFile) {
+  formData.append('photo', selectedFile);
+}
 
 
-      if (!response.ok) throw new Error("Submission failed");
-
-      toast({
-        title: "Application Submitted",
-        description: "Your admission application has been submitted successfully!",
+      const res = await fetch("http://localhost:5000/api/students/register", {
+        method: "POST",
+        body: formData,
       });
+      if (!res.ok) throw new Error("Failed to submit application");
+      toast({ title: "✅ Application Submitted", description: "Your admission application was successful!" });
+      reset();
+      setProfileImage(null);
+      setCurrentStep(1);
     } catch (err) {
       toast({
         title: "Submission Failed",
         description: (err as Error).message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  placeholder="Enter your first name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  placeholder="Enter your last name"
-                />
-              </div>
-            </div>
+  // Image Upload
+const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="idNumber">ID Number *</Label>
-                <Input
-                  id="idNumber"
-                  value={formData.idNumber}
-                  onChange={(e) => handleInputChange('idNumber', e.target.value)}
-                  placeholder="Enter your ID number"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                <Input
-                  id="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                />
-              </div>
-            </div>
+const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0] ?? null;
+  if (file) {
+    setSelectedFile(file);
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="gender">Gender *</Label>
-                <Select
-                  value={formData.gender}
-                  onValueChange={(value) => handleInputChange('gender', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nationality">Nationality</Label>
-                <Input
-                  id="nationality"
-                  value={formData.nationality}
-                  onChange={(e) => handleInputChange('nationality', e.target.value)}
-                  placeholder="Enter your nationality"
-                />
-              </div>
-            </div>
+    const reader = new FileReader();
+    reader.onload = () => setProfileImage(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+};
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="county">County *</Label>
-                <Input
-                  id="county"
-                  value={formData.county}
-                  onChange={(e) => handleInputChange('county', e.target.value)}
-                  placeholder="Enter your county"
-                />
+  // Steps
+  const StepOne = () => (
+    <div className="space-y-5 animate-fadeIn">
+      <div className="flex flex-col items-center mb-6">
+        <div className="relative w-28 h-28">
+          <div className="w-full h-full rounded-full overflow-hidden border-4 border-blue-200 shadow-md">
+{profileImage ? (
+  <img
+    src={profileImage}
+    alt="Student photo"
+    className="w-full h-full object-cover"
+  />
+) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500">
+                <User className="w-10 h-10" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="Enter your phone number"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="Enter your email address"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Home Address</Label>
-              <Textarea
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                placeholder="Enter your home address"
-                rows={3}
-              />
-            </div>
+            )}
           </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="previousSchool">Previous School/Institution</Label>
-                <Input
-                  id="previousSchool"
-                  value={formData.previousSchool}
-                  onChange={(e) => handleInputChange('previousSchool', e.target.value)}
-                  placeholder="Enter your previous school"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="graduationYear">Graduation Year</Label>
-                <Input
-                  id="graduationYear"
-                  type="number"
-                  value={formData.graduationYear}
-                  onChange={(e) => handleInputChange('graduationYear', e.target.value)}
-                  placeholder="e.g., 2023"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gradeObtained">Grade/CGPA Obtained</Label>
-              <Input
-                id="gradeObtained"
-                value={formData.gradeObtained}
-                onChange={(e) => handleInputChange('gradeObtained', e.target.value)}
-                placeholder="e.g., A, 3.5"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="programChoice">Program Choice *</Label>
-                          <Select
-                                   value={formData.programChoice}
-                                    onValueChange={(value) => handleInputChange("programChoice", value)}
-                                          >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select program" />
-                  </SelectTrigger>
-                        <SelectContent className="bg-white">
-                                {courses.map((course) => (
-                          <SelectItem key={course.id} value={String(course.id)}>
-                              {course.name}
-                                  </SelectItem>
-                                               ))}
-                                        </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="intakeYear">Intake Year *</Label>
-               <Select
-                        value={formData.intakeYear}
-                          onValueChange={(value) => handleInputChange("intakeYear", value)}
-                                  >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                        <SelectContent className="bg-white">
-                            {intakes.map((intake) => (
-                          <SelectItem key={intake.id} value={String(intake.id)}>
-                             {intake.intake_name}
-                             </SelectItem>
-                                       ))}
-                            </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Student Admission Application</h1>
-        <p className="text-muted-foreground">Complete your application in two simple steps</p>
+          <label className="absolute bottom-0 right-0 bg-yellow-600 p-1 rounded-full cursor-pointer hover:bg-yellow-700 transition">
+            <Camera className="w-4 h-4 text-white" />
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+          </label>
+        </div>
+        <p className="text-sm text-gray-600 mt-2">Upload your passport photo</p>
       </div>
 
-      {/* Progress Bar */}
-      <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>First Name *</Label>
+          <Input {...register("firstName")} placeholder="Enter first name" />
+          {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName.message}</p>}
+        </div>
+        <div>
+          <Label>Last Name *</Label>
+          <Input {...register("lastName")} placeholder="Enter last name" />
+          {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName.message}</p>}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>ID Number *</Label>
+          <Input {...register("idNumber")} placeholder="Enter ID number" />
+          {errors.idNumber && <p className="text-red-500 text-sm">{errors.idNumber.message}</p>}
+        </div>
+        <div>
+          <Label>Date of Birth</Label>
+          <Input type="date" {...register("dateOfBirth")} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Gender *</Label>
+          <Select onValueChange={(val) => setValue("gender", val)} value={watch("gender")}>
+            <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">Male</SelectItem>
+              <SelectItem value="female">Female</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.gender && <p className="text-red-500 text-sm">{errors.gender.message}</p>}
+        </div>
+        <div>
+          <Label>Nationality</Label>
+          <Input {...register("nationality")} placeholder="Kenyan" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>County *</Label>
+          <Input {...register("county")} placeholder="Enter county" />
+          {errors.county && <p className="text-red-500 text-sm">{errors.county.message}</p>}
+        </div>
+        <div>
+          <Label>Phone Number *</Label>
+          <Input {...register("phone")} placeholder="07..." />
+          {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
+        </div>
+      </div>
+
+      <div>
+        <Label>Email *</Label>
+        <Input type="email" {...register("email")} placeholder="you@example.com" />
+        {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
+      </div>
+
+      <div>
+        <Label>Address</Label>
+        <Textarea {...register("address")} placeholder="Enter your address" rows={3} />
+      </div>
+    </div>
+  );
+
+  const StepTwo = () => (
+    <div className="space-y-5 animate-fadeIn">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Previous School</Label>
+          <Input {...register("previousSchool")} placeholder="Enter previous school" />
+        </div>
+        <div>
+          <Label>Graduation Year</Label>
+          <Input type="number" {...register("graduationYear")} placeholder="e.g. 2023" />
+        </div>
+      </div>
+
+      <div>
+        <Label>Grade / CGPA</Label>
+        <Input {...register("gradeObtained")} placeholder="e.g., B+, 3.2" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label>Program Choice *</Label>
+          <Select onValueChange={(val) => setValue("programChoice", val)} value={watch("programChoice")}>
+            <SelectTrigger><SelectValue placeholder="Select program" /></SelectTrigger>
+            <SelectContent>
+              {courses.map((c) => (
+                <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.programChoice && <p className="text-red-500 text-sm">{errors.programChoice.message}</p>}
+        </div>
+
+        <div>
+          <Label>Intake Year *</Label>
+          <Select onValueChange={(val) => setValue("intakeYear", val)} value={watch("intakeYear")}>
+            <SelectTrigger><SelectValue placeholder="Select intake" /></SelectTrigger>
+            <SelectContent>
+              {intakes.map((i) => (
+                <SelectItem key={i.id} value={String(i.id)}>{i.intake_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.intakeYear && <p className="text-red-500 text-sm">{errors.intakeYear.message}</p>}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 py-10 px-4">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-yellow-700 mb-1">🎓 Student Admission Application</h1>
+        <p className="text-gray-600">Complete your application in two easy steps</p>
+      </div>
+
+      <Card className="shadow-md border-blue-100">
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium">Step {currentStep} of {totalSteps}</span>
-            <span className="text-sm text-muted-foreground">{Math.round(progress)}% Complete</span>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-700">
+              Step {currentStep} of {totalSteps}
+            </span>
+            <span className="text-sm text-gray-500">{Math.round(progress)}% Complete</span>
           </div>
-          <Progress value={progress} className="mb-4" />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span className={currentStep >= 1 ? 'text-primary font-medium' : ''}>Personal Info</span>
-            <span className={currentStep >= 2 ? 'text-primary font-medium' : ''}>Academic Info</span>
-          </div>
+          <Progress value={progress} />
         </CardContent>
       </Card>
 
-      {/* Form Content */}
-      <Card>
+      <Card className="shadow-lg border border-blue-100">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            {currentStep === 1 && <User className="h-5 w-5" />}
-            {currentStep === 2 && <FileText className="h-5 w-5" />}
-            <span>
-              {currentStep === 1 && 'Personal Information'}
-              {currentStep === 2 && 'Academic Information'}
-            </span>
+          <CardTitle className="flex items-center space-x-2 text-blue-700">
+            {currentStep === 1 ? <User className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+            <span>{currentStep === 1 ? "Personal Information" : "Academic Information"}</span>
           </CardTitle>
           <CardDescription>
-            {currentStep === 1 && 'Please provide your personal details'}
-            {currentStep === 2 && 'Tell us about your academic background'}
+            {currentStep === 1
+              ? "Please provide your personal details"
+              : "Tell us about your academic background"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {renderStepContent()}
-        </CardContent>
+        <CardContent>{currentStep === 1 ? <StepOne /> : <StepTwo />}</CardContent>
       </Card>
 
-      {/* Navigation Buttons */}
       <div className="flex justify-between">
-        <Button
-          variant="outline"
-          onClick={handlePrevStep}
-          disabled={currentStep === 1}
-        >
+        <Button variant="outline" onClick={() => setCurrentStep((s) => Math.max(1, s - 1))} disabled={currentStep === 1}>
           Previous
         </Button>
-        
+
         {currentStep < totalSteps ? (
-          <Button onClick={handleNextStep} className="gradient-primary text-white">
-            Next Step
-          </Button>
+          <Button onClick={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))}>Next</Button>
         ) : (
-          <Button onClick={handleSubmit} className="gradient-primary text-white">
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Submit Application
+          <Button onClick={handleSubmit(onSubmit)} disabled={loading}>
+            {loading ? "Submitting..." : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" /> Submit Application
+              </>
+            )}
           </Button>
         )}
       </div>

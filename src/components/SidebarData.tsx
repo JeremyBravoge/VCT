@@ -2,7 +2,6 @@ import HomeIcon from '@mui/icons-material/Home';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import PermMediaIcon from '@mui/icons-material/PermMedia';
-import MailIcon from '@mui/icons-material/Mail';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -10,6 +9,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import SchoolIcon from '@mui/icons-material/School';
+import TaskAltIcon from '@mui/icons-material/TaskAlt';
 export const SidebarData = [
     
             {
@@ -20,7 +20,7 @@ export const SidebarData = [
     {
         title:"Home",
         icon:<HomeIcon />,
-        link:"/home"
+        link:"/"
     },
             {
         title:"Admision",
@@ -34,9 +34,9 @@ export const SidebarData = [
     },
 
         {
-        title:"Courses",
+        title:"Department",
         icon:<AnalyticsIcon />,
-        link:"/Courses"
+        link:"/departments/management"
     },
     {
         title:"Payments",
@@ -51,11 +51,11 @@ export const SidebarData = [
         {
         title:"Images",
         icon:<PermMediaIcon />,
-        link:"/images"
+        link:"/media"
     },
         {
         title:"Mailbox",
-        icon:<MailIcon />,
+        icon:<TaskAltIcon/>,
         link:"/marks-entry"
     },
     {

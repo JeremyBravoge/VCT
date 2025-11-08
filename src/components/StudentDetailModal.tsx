@@ -24,6 +24,7 @@ import {
 interface Student {
   student_id: string;
   name?: string;
+  image_url?: string; // ✅ add this
   id?: string;
   course?: string;
   department?: string;
@@ -65,12 +66,21 @@ export default function Students() {
   const [showAdmissionForm, setShowAdmissionForm] = useState<boolean>(false);
   const [showEnrollmentModal, setShowEnrollmentModal] = useState<boolean>(false);
   const [enrollingStudent, setEnrollingStudent] = useState<Student | null>(null);
-  const [modules, setModules] = useState<Record<string, unknown>[]>([]);
+  interface Module {
+    id: string;
+    title: string;
+    level: string;
+    level_name: string;
+  }
+  
+    const [modules, setModules] = useState<Module[]>([]);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<string>("Level 1");
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
+  const [filteredModules, setFilteredModules] = useState<Module[]>([]);
   const navigate = useNavigate();
   const [errors, setErrors] = useState<Record<string, string>>({});
+
 
 
 
@@ -99,10 +109,29 @@ useEffect(() => {
 
   axios.get("http://localhost:5000/api/branches")
     .then(res => setBranches(res.data || []));
-
-  axios.get("http://localhost:5000/api/modules")
-    .then(res => setModules(res.data || []));
 }, []);
+
+useEffect(() => {
+  if (!enrollingStudent) {
+    // Clear modules when no enrolling student
+    setModules([]);
+    setFilteredModules([]);
+    return;
+  }
+
+  const fetchModules = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/modules?course_id=${enrollingStudent.course_id}`
+      );
+      setModules(res.data || []);
+    } catch (err) {
+      console.error("Error fetching modules:", err);
+    }
+  };
+
+  fetchModules();
+}, [enrollingStudent]);
 
 const validateStudent = (student: any) => {
   const newErrors: { [key: string]: string } = {};
@@ -160,7 +189,7 @@ const handleEnrollStudent = (student: any) => {
 const handleEnroll = async () => {
   try {
     await axios.post("http://localhost:5000/api/modules/enroll", {
-      student_id: enrollingStudent.student_id,
+      student_id: enrollingStudent?.student_id ?? '',
       module_ids: selectedModules,
       level: selectedLevel
     });
@@ -172,6 +201,25 @@ const handleEnroll = async () => {
   } catch (err) {
     console.error(err);
     alert("Failed to enroll student");
+const handleLevelChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const newLevel = e.target.value;
+  setSelectedLevel(newLevel);
+  setSelectedModules([]); // ✅ clear module selections when level changes
+
+  if (!newLevel) {
+    setModules([]);
+    return;
+  }
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/modules?level=${newLevel}`);
+    const data = await res.json();
+    setModules(data || []);
+  } catch (error) {
+    console.error("Error fetching modules:", error);
+  }
+};
+    console.error("Error fetching modules:", error);
   }
 };
 
@@ -214,11 +262,21 @@ const filteredStudents = students.filter(student => {
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedStudents = filteredStudents.slice(startIndex, startIndex + itemsPerPage);
-  const departmentFilters = [...new Set(students.map(s => s.department))];
   const statuses = [...new Set(students.map(s => s.status))];
 
-  
-  
+useEffect(() => {
+  if (!enrollingStudent) return;
+
+  // Filter modules for the student's course and selected level
+  const courseModules = modules.filter(
+    (mod: any) =>
+      mod.course_id === enrollingStudent.course_id &&
+      (!selectedLevel || mod.level_name === selectedLevel)
+  );
+  setFilteredModules(courseModules);
+}, [enrollingStudent, selectedLevel, modules]);
+
+
 
   return (
 <div className="space-y-6">
@@ -311,11 +369,22 @@ const filteredStudents = students.filter(student => {
             <TableRow key={student.student_id} className="hover:bg-primary/10 transition-colors">
               <TableCell>
                 <div className="flex items-center space-x-2">
-                  <Avatar className="h-9 w-9 ring-2 ring-primary/30 shadow-sm">
-                    <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                      {(student.name ?? "").split(" ").map((n: string) => n[0]).join("") || "?"}
-                    </AvatarFallback>
-                  </Avatar>
+<Avatar className="h-9 w-9 ring-2 ring-primary/30 shadow-sm overflow-hidden">
+  {student.image_url ? (
+    <img
+      src={student.image_url.startsWith("http")
+        ? student.image_url
+        : `http://localhost:5000/${student.image_url}`}
+      alt={student.name}
+      className="object-cover w-full h-full"
+    />
+  ) : (
+    <AvatarFallback className="bg-primary/10 text-primary font-medium">
+      {(student.name ?? "").split(" ").map((n: string) => n[0]).join("") || "?"}
+    </AvatarFallback>
+  )}
+</Avatar>
+
                   <div>
                     <p className="font-medium text-foreground">{student.name}</p>
                     <p className="text-sm text-muted-foreground">{student.id}</p>
@@ -780,7 +849,14 @@ const filteredStudents = students.filter(student => {
       {/* Select Level */}
       <div>
         <label className="block text-sm font-medium mb-1">Select Level</label>
-        <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+        <Select
+          value={selectedLevel}
+          onValueChange={(value) => {
+            setSelectedLevel(value);
+            // ✅ clear module selections when changing level
+            setSelectedModules([]);
+          }}
+        >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select Level" />
           </SelectTrigger>
@@ -793,29 +869,32 @@ const filteredStudents = students.filter(student => {
       </div>
 
       {/* Select Modules */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Select Modules</label>
-        <div className="border p-2 rounded max-h-48 overflow-y-auto">
-          {modules.map((mod: any) => (
-            <div key={mod.id} className="flex items-center gap-2 py-1">
-              <input
-                type="checkbox"
-                id={`module-${mod.id}`}
-                checked={selectedModules.includes(mod.id)}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setSelectedModules(prev =>
-                    checked ? [...prev, mod.id] : prev.filter(id => id !== mod.id)
-                  );
-                }}
-              />
-              <label htmlFor={`module-${mod.id}`} className="text-sm">
-                {mod.name}
-              </label>
-            </div>
-          ))}
-        </div>
+      {/* Select Modules */}
+<div>
+  <label className="block text-sm font-medium mb-1">Select Modules</label>
+  <div className="border p-2 rounded max-h-48 overflow-y-auto">
+    {filteredModules.map((mod: any) => (
+      <div key={mod.id} className="flex items-center gap-2 py-1">
+        <input
+          type="checkbox"
+          id={`module-${mod.id}`}
+          checked={selectedModules.includes(mod.id)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedModules([...selectedModules, mod.id]);
+            } else {
+              setSelectedModules(selectedModules.filter(id => id !== mod.id));
+            }
+          }}
+        />
+        <label htmlFor={`module-${mod.id}`} className="text-sm">
+          {mod.title} {mod.code ? `(${mod.code})` : ""}
+        </label>
       </div>
+    ))}
+  </div>
+</div>
+
     </div>
 
     {/* Buttons */}
@@ -823,12 +902,11 @@ const filteredStudents = students.filter(student => {
       <Button variant="outline" onClick={() => setShowEnrollmentModal(false)}>
         Cancel
       </Button>
-      <Button onClick={handleEnroll}>
-        Enroll
-      </Button>
+      <Button onClick={handleEnroll}>Enroll</Button>
     </div>
   </DialogContent>
 </Dialog>
+
 
     </div>
 

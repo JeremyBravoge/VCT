@@ -1,281 +1,280 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Bell, User, LogOut, Menu, Search, Settings, ChevronDown, Users, BookOpen, GraduationCap
-} from 'lucide-react';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/AuthContext';
-import axios from 'axios';
+import { useState, useRef, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Home, User, Settings, Bell, LogOut } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/AuthContext";
 
-interface TopBarProps {
-  onLogout: () => void;
-  onToggleSidebar: () => void;
+interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  icon: string;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({
-  onLogout,
-  onToggleSidebar
-}) => {
-  const [notifications] = useState([
-    { id: 1, message: 'New student enrollment pending', time: '5m ago', unread: true },
-    { id: 2, message: 'Grade 4 Math assessment completed', time: '1h ago', unread: true },
-    { id: 3, message: 'Staff meeting scheduled for tomorrow', time: '2h ago', unread: false },
-  ]);
-  const [currentUser, setCurrentUser] = useState<{
-    full_name: string;
-    email: string;
-    profile_image: string | null;
-  } | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const { logout } = useAuth();
+interface UserProfile {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  profile_image?: string;
+}
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+export default function DashboardTopbar() {
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // ✅ Fetch current user
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const profileRef = useRef<HTMLDivElement | null>(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { token } = useAuth();
+
+  const path = location.pathname.split("/")[1] || "dashboard";
+  const pageName =
+    path.charAt(0).toUpperCase() + path.slice(1).replace(/-/g, " ");
+
+  // ✅ Fetch Notifications
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return null;
+    const fetchNotifications = async () => {
+      if (!token) return;
+      setLoading(true);
+      setError(null);
+
       try {
-        const res = await fetch('http://localhost:5000/api/users/me', {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await fetch("http://localhost:5000/api/activities/recent", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
-        const data = await res.json();
-        return data.error ? null : data;
-      } catch {
-        return null;
+
+        if (!response.ok) throw new Error("Failed to fetch notifications");
+
+        const data = await response.json();
+        const formatted = data.map((item: any) => ({
+          id: item.id,
+          type: item.type || "activity",
+          title: `${item.student} ${item.action} ${item.course}`,
+          message: `${item.action} ${item.course}`,
+          timestamp: item.time,
+          read: false,
+          icon:
+            item.type === "enrollment"
+              ? "🎓"
+              : item.type === "payment"
+              ? "💳"
+              : "📢",
+        }));
+
+        setNotifications(formatted);
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchCurrentUser().then(user => {
-      if (user) {
-        setCurrentUser(user);
-      } else {
-        // fallback
-        setCurrentUser({
-          full_name: 'Administrator',
-          email: 'admin@school.edu',
-          profile_image: '/default-avatar.png',
+    fetchNotifications();
+  }, [token]);
+
+  // ✅ Fetch Logged-in User Profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return;
+
+      try {
+        const res = await fetch("http://localhost:5000/api/users/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
+
+        if (!res.ok) throw new Error("Failed to fetch user profile");
+
+        const data = await res.json();
+
+        // ✅ Map backend fields correctly
+        const userData: UserProfile = {
+          id: data.id,
+          full_name: data.full_name,
+          email: data.email,
+          role: data.role,
+          profile_image: data.profile_image
+            ? `http://localhost:5000/uploads/${data.profile_image}`
+            : "https://randomuser.me/api/portraits/men/32.jpg",
+        };
+
+        setProfile(userData);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
       }
-    });
+    };
+
+    fetchProfile();
+  }, [token]);
+
+  // ✅ Handle outside clicks
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfile(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Global search functionality
-  useEffect(() => {
-    const performSearch = async () => {
-      if (searchQuery.trim().length < 2) {
-        setSearchResults([]);
-        setShowSearchResults(false);
-        return;
-      }
+  // ✅ Format timestamp
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diff = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
+    if (diff < 1) return "Just now";
+    if (diff < 60) return `${diff} mins ago`;
+    if (diff < 1440) return `${Math.floor(diff / 60)} hours ago`;
+    return `${Math.floor(diff / 1440)} days ago`;
+  };
 
-      try {
-        const token = localStorage.getItem('token');
-        const [studentsRes, usersRes, coursesRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/students', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get('http://localhost:5000/api/users', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get('http://localhost:5000/api/courses', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-
-        const students = studentsRes.data || [];
-        const users = usersRes.data || [];
-        const courses = coursesRes.data || [];
-
-        const query = searchQuery.toLowerCase();
-
-        const filteredStudents = students.filter((student: any) =>
-          (student.name || '').toLowerCase().includes(query) ||
-          (student.email || '').toLowerCase().includes(query) ||
-          (student.student_id || '').toLowerCase().includes(query) ||
-          (student.course || '').toLowerCase().includes(query)
-        ).slice(0, 5).map((student: any) => ({ ...student, type: 'student' }));
-
-        const filteredUsers = users.filter((user: any) =>
-          (user.full_name || '').toLowerCase().includes(query) ||
-          (user.email || '').toLowerCase().includes(query) ||
-          (user.username || '').toLowerCase().includes(query)
-        ).slice(0, 5).map((user: any) => ({ ...user, type: 'user' }));
-
-        const filteredCourses = courses.filter((course: any) =>
-          (course.name || '').toLowerCase().includes(query) ||
-          (course.description || '').toLowerCase().includes(query)
-        ).slice(0, 5).map((course: any) => ({ ...course, type: 'course' }));
-
-        const results = [...filteredStudents, ...filteredUsers, ...filteredCourses];
-        setSearchResults(results);
-        setShowSearchResults(results.length > 0);
-      } catch (error) {
-        console.error('Search error:', error);
-        setSearchResults([]);
-        setShowSearchResults(false);
-      }
-    };
-
-    const debounceTimer = setTimeout(performSearch, 300);
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery]);
+  const getIconBgColor = (type: string) => {
+    switch (type) {
+      case "message": return "bg-blue-100 text-blue-600";
+      case "announcement": return "bg-purple-100 text-purple-600";
+      case "payment": return "bg-green-100 text-green-600";
+      default: return "bg-gray-100 text-gray-600";
+    }
+  };
 
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 shadow-sm fixed top-0 left-64 right-0 z-50">
-      <div className="flex items-center justify-between">
-        
-        {/* Left Section */}
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleSidebar}
-            className="md:hidden"
+    <header className="flex items-center justify-between bg-gray-50 px-6 py-3 border-b relative">
+      {/* Left Side */}
+      <div>
+        <div className="flex items-center text-sm text-gray-500">
+          <Home className="w-4 h-4 mr-1" />
+          <span> / </span>
+          <span className="ml-1">{pageName}</span>
+        </div>
+        <h1 className="text-lg font-semibold text-gray-800">{pageName}</h1>
+      </div>
+
+      {/* Right Side */}
+      <div className="flex items-center space-x-4">
+        <Input
+          type="text"
+          placeholder="Search here"
+          className="pl-3 pr-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none w-48"
+        />
+
+        {/* Notifications */}
+        <div className="flex items-center space-x-4 text-gray-500 relative" ref={dropdownRef}>
+          <Settings className="w-5 h-5 cursor-pointer hover:text-gray-700" />
+          <Bell
+            className="w-5 h-5 cursor-pointer hover:text-gray-700"
+            onClick={() => setShowNotifications(!showNotifications)}
+          />
+
+          {/* Notifications dropdown */}
+{showNotifications && (
+  <div
+    className="absolute right-0 top-12 w-80 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50"
+    style={{ maxHeight: "70vh", overflowY: "auto" }}
+  >
+    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
+      <h3 className="text-sm font-semibold text-gray-700">Notifications</h3>
+      <button className="text-xs text-blue-600 hover:underline">
+        Mark all as read
+      </button>
+    </div>
+
+    <ul className="divide-y divide-gray-100">
+      {loading ? (
+        <li className="px-4 py-3 text-center text-sm text-gray-500">
+          Loading...
+        </li>
+      ) : error ? (
+        <li className="px-4 py-3 text-center text-sm text-red-500">{error}</li>
+      ) : notifications.length === 0 ? (
+        <li className="px-4 py-3 text-center text-sm text-gray-500">
+          No notifications
+        </li>
+      ) : (
+        notifications.map((n) => (
+          <li
+            key={n.id}
+            className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition"
           >
-            <Menu className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Center of Hope and Transformation
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              CBC School Management System
-            </p>
-          </div>
+            <span className={`${getIconBgColor(n.type)} p-2 rounded-lg`}>
+              {n.icon}
+            </span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-800">{n.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {formatTimeAgo(n.timestamp)}
+              </p>
+            </div>
+          </li>
+        ))
+      )}
+    </ul>
+  </div>
+)}
+
         </div>
 
-        {/* Search Bar */}
-        <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search students, staff, or records..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-            />
-            {/* Search Results Dropdown */}
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-                {searchResults.map((result, index) => (
-                  <div
-                    key={`${result.type}-${result.id || index}`}
-                    className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-                  >
-                    <div className="flex items-center space-x-3 flex-1">
-                      {result.type === 'student' && <GraduationCap className="w-4 h-4 text-blue-500" />}
-                      {result.type === 'user' && <Users className="w-4 h-4 text-green-500" />}
-                      {result.type === 'course' && <BookOpen className="w-4 h-4 text-purple-500" />}
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {result.type === 'student' ? result.name : result.type === 'user' ? result.full_name : result.name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {result.type === 'student' ? `${result.student_id} • ${result.course}` :
-                           result.type === 'user' ? `${result.email} • ${result.role}` :
-                           result.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Profile */}
+        <div className="relative" ref={profileRef}>
+          <img
+            src={profile?.profile_image}
+            alt="User avatar"
+            className="w-8 h-8 rounded-full border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-400"
+            onClick={() => setShowProfile(!showProfile)}
+          />
 
-        {/* Right Section */}
-        <div className="flex items-center space-x-4">
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500">
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
-              <div className="p-4 border-b">
-                <h3 className="font-medium">Notifications</h3>
-                <p className="text-sm text-gray-500">{unreadCount} unread</p>
+          {showProfile && (
+            <div className="absolute right-0 mt-3 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-50">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-800">{profile?.full_name || "User"}</p>
+                <p className="text-xs text-gray-500">{profile?.role || "Member"}</p>
               </div>
-              {notifications.map((n) => (
-                <DropdownMenuItem key={n.id} className="p-4 cursor-pointer">
-                  <div className="flex items-start space-x-3">
-                    <div className={`w-2 h-2 rounded-full mt-2 ${n.unread ? 'bg-blue-500' : 'bg-gray-300'}`} />
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900 dark:text-white">{n.message}</p>
-                      <p className="text-xs text-gray-500 mt-1">{n.time}</p>
-                    </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* User Profile */}
-          {currentUser && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center space-x-2 px-3">
-                  <img
-                    src={currentUser.profile_image ? `http://localhost:5000/uploads/${currentUser.profile_image}` : '/default-avatar.png'}
-                    alt="Avatar"
-                    className="w-8 h-8 rounded-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/default-avatar.png';
-                    }}
-                  />
-                  <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {currentUser.full_name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {currentUser.email}
-                    </p>
-                  </div>
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem className="cursor-pointer">
-                  <User className="w-4 h-4 mr-2" />
-                  Profile Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  <Settings className="w-4 h-4 mr-2" />
-                  System Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer text-red-600 hover:text-red-700"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    onLogout();
-                  }}
+              <div className="p-2">
+                <button
+                  onClick={() => navigate("/UserManagement")}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 text-gray-700"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <User size={16} /> View Profile
+                </button>
+                <button
+                  onClick={() => navigate("/settings")}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 text-gray-700"
+                >
+                  <Settings size={16} /> Settings
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("token");
+                    navigate("/");
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 rounded-md hover:bg-red-500 hover:text-white transition"
+                >
+                  <LogOut size={16} /> Logout
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
     </header>
   );
-};
+}

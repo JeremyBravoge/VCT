@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
+import { useNavigate } from "react-router-dom";
+
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
@@ -28,6 +30,8 @@ export default function Courses() {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState<any[]>([]);
+  const navigate = useNavigate();
+
 
   // For modal state
   const [editingCourse, setEditingCourse] = useState<any | null>(null);
@@ -142,22 +146,32 @@ const handleSaveCourse = async () => {
 
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Courses</h1>
-          <p className="text-muted-foreground">Manage course offerings and schedules</p>
-        </div>
-<Button 
-  className="gradient-primary hover:opacity-90 text-white shadow-sm"
-  onClick={() => setOpen(true)}
->
-  <Plus className="h-4 w-4 mr-2" />
-  Add Course
-</Button>
+<div className="space-y-6">
+  {/* Header */}
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 className="text-3xl font-bold text-foreground">Courses</h1>
+      <p className="text-muted-foreground">Manage course offerings and schedules</p>
+    </div>
 
-      </div>
+    {/* Action Buttons */}
+    <div className="flex gap-2">
+      <Button
+        className="gradient-primary hover:opacity-90 text-white shadow-sm"
+        variant="outline"
+        size="sm"
+        onClick={() => navigate("/departments/management")}
+      >
+        ← Back
+      </Button>
+      <Button
+        className="gradient-primary hover:opacity-90 text-white shadow-sm"
+        onClick={() => setOpen(true)}
+      >
+        <Plus className="h-4 w-4 mr-2" /> Add Course
+      </Button>
+    </div>
+  </div>
 
       {/* Search */}
       <Card className="shadow-card">

@@ -1,9 +1,15 @@
 #root {
   margin: 0 auto;
-  padding: 0px -20px 20px; 
+  padding: 0px 20px 20px; 
   justify-content: left;
   text-align: left;
-  background:rgb(255, 153, 29);
+  background:rgb(224, 224, 212);
+  background-color: ;
+  background-image: url('downlod.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
 }
 
 .logo {
@@ -49,14 +55,44 @@ body{
   top: 0;
   left: 0;
   height: 100vh;
-  width: 230px; /* make it wider for spacing */
-  background-color: #ff0022; /* keep red */
-  padding-top: 20px; /* add spacing on top */
+  width: 260px;
+  background-color: #36373c;
+  padding-top: 20px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* push profile to bottom */
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  justify-content: space-between;
+  box-shadow: 2px 0 8px rgba(240, 216, 216, 0.1);
+  background-image: url('');
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white; /* ensures text is readable */
+  z-index: 0;
 }
+
+.Sidebar::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: AUTO;
+  background-color: rgba(0, 0, 0, 0.5); /* dark overlay */
+  z-index: -9;
+}
+/* Sidebar.css or inside your Sidebar component */
+Sidebar {
+  width: 240px;             /* consistent width */
+  min-height: 100vh;
+  background-color: #e30613; /* your red color */
+  position: fixed;          /* stays on the left */
+  top: 0;
+  left: 0;
+  z-index: 50;              /* below topbar, above content */
+  display: flex;
+  flex-direction: column;
+}
+
 
 /* Sidebar Menu */
 .SidebarList {
@@ -71,13 +107,13 @@ body{
   padding: 12px 16px;
   color: #fff;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 200;
   cursor: pointer;
   transition: background 0.3s ease;
 }
 
 .SidebarList .row:hover {
-  background-color: #FBC250;
+  background-color: #00acc1;
 }
 
 .SidebarList #active {
@@ -114,31 +150,60 @@ body{
   display: flex;
   align-items: left;
 }
+/* Add these at the end of App.css - optional & minimal */
+.org-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  text-align: center;
+  background: transparent; /* won't override your theme */
+}
+.org-title {
+  font-weight: 700;
+  color: inherit; /* inherit existing color to avoid breaking your palette */
+  font-size: 16px;
+}
 
-.profile .avatar {
+/* profile area */
+.profile-area {
+  padding: 10px 12px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.profile-row:hover { background: rgba(0,0,0,0.03); }
+.profile-avatar {
   width: 36px;
   height: 36px;
-  background: #fff;
-  color: #000000;
-  font-weight: bold;
-  display: flex;
-  align-items:center;
-  justify-content: center;
-  border-radius: 50%;
-  margin-right: 12px;
+  border-radius: 999px;
+  object-fit: cover;
 }
+.profile-info { flex: 1; }
+.profile-name { font-size: 14px; font-weight: 600; color: inherit; }
+.profile-role { font-size: 12px; color: rgba(0,0,0,0.5); }
+.profile-caret { font-size: 14px; color: rgba(0,0,0,0.5); }
 
-.profile .info {
-  color: #fff;
+/* dropdown */
+.profile-dropdown {
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
 }
-
-.profile .info p {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
+.profile-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
-
-.profile .info span {
-  font-size: 12px;
-  color: #ddd;
-}
+.profile-item:hover { background: rgba(0,0,0,0.03); }
+.profile-logout { color: #d9534f; }

@@ -66,14 +66,19 @@ function Login() {
     }
   };
   return (
-    <div className="min-h-screen flex justify-center items-center bg-white">
+    <div className="min-h-screen flex justify-center items-center bg-red-6" style={{
+    backgroundImage: "url('')",
+    backgroundBlendMode: "overlay",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  }}>
       <div className="flex w-[900px] h-[450px] bg-white rounded-lg overflow-hidden shadow-lg">
         {/* Left Panel (Image) */}
-        <div className="flex-1 bg-black">
+        <div className="flex-1 bg-black" >
           <img
-            src="/IMG_0095.JPG"
+            src="comp teaching (1).jpg"
             alt="Login Image"
-            className="w-full h-full object-cover opacity-50"            
+            className="w-full h-full object-cover opacity-50"  
+                      
           />
         </div>
         {/* Right Panel (Form) */}
