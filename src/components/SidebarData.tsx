@@ -56,12 +56,12 @@ export const SidebarData = [
         {
         title:"Mailbox",
         icon:<MailIcon />,
-        link:"/studentportal"
+        link:"/marks-entry"
     },
     {
-        title:"Teacher Portal",
+        title:"Instructors",
         icon:<SchoolIcon />,
-        link:"/teachersportal"
+        link:"/trainerspage"
     },
             {
         title:"Notifications",
