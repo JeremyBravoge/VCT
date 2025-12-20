@@ -1,6 +1,6 @@
 // StudentRankingPage.tsx - Advanced UI/UX Version
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import axios from 'axios';
+import { rankingApi } from '../utils/api';
 import { ChevronDownIcon, MagnifyingGlassIcon as SearchIcon, ArrowDownTrayIcon as DownloadIcon, ArrowPathIcon as RefreshIcon } from '@heroicons/react/24/outline';
 
 // --- Type Definitions ---
@@ -27,6 +27,8 @@ interface Summary {
     avg_gpa?: number;
     excellent_count?: number;
 }
+
+
 
 interface Department {
     id: string;
@@ -131,13 +133,14 @@ const StudentRankingPage: React.FC = () => {
                 params.append(key, String(value));
             });
             // API endpoint remains the same, ensuring compatibility
-            const response = await axios.get(`/api/ranking/overall?${params}`);
+            const response = await rankingApi.getOverallRanking(Object.fromEntries(params));
 
-            if (response.data.success) {
-                setStudents(response.data.students || []);
-                setSummary(response.data.summary || {});
+            if (response.success && response.data) {
+                const data = response.data as { students?: Student[]; summary?: Summary };
+                setStudents(data.students || []);
+                setSummary(data.summary || {});
             } else {
-                 setError(response.data.message || 'An unknown error occurred.');
+                 setError(response.error || response.message || 'An unknown error occurred.');
             }
         } catch (err) {
             console.error('Error fetching rankings:', err);
@@ -152,26 +155,26 @@ const StudentRankingPage: React.FC = () => {
         fetchRankings();
     }, [filters, fetchRankings]); // fetchRankings is stable due to useCallback
 
-    const handleFilterChange = useCallback((key, value) => {
+    const handleFilterChange = useCallback((key: string, value: string | number) => {
         setFilters(prev => {
             // Reset page on any significant filter change (not just sort/order)
             const resetPage = (key !== 'page' && key !== 'sort_by' && key !== 'sort_order');
-            return { 
-                ...prev, 
-                [key]: value, 
-                page: resetPage ? 1 : prev.page 
+            return {
+                ...prev,
+                [key]: value,
+                page: resetPage ? 1 : prev.page
             };
         });
     }, []);
 
     // Helper functions (kept simple for brevity)
-    const getPerformanceColor = (percentage) => {
+    const getPerformanceColor = (percentage: number): string => {
         if (percentage >= 80) return 'bg-green-50 text-green-700 ring-green-600/20';
         if (percentage >= 60) return 'bg-yellow-50 text-yellow-700 ring-yellow-600/20';
         return 'bg-red-50 text-red-700 ring-red-600/20';
     };
 
-    const getRankBadge = (rank) => {
+    const getRankBadge = (rank: number): string | number => {
         if (rank === 1) return '🥇';
         if (rank === 2) return '🥈';
         if (rank === 3) return '🥉';
@@ -195,7 +198,7 @@ const StudentRankingPage: React.FC = () => {
         </div>
     );
 
-    const ErrorState = ({ message }) => (
+    const ErrorState = ({ message }: { message: string }) => (
         <div className="text-center py-10 bg-red-100 border border-red-400 text-red-700 rounded-lg" role="alert">
             <p className="font-bold">Data Fetch Error</p>
             <p className="text-sm">{message}</p>
@@ -235,10 +238,10 @@ const StudentRankingPage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {/* Summary data mapping for scalability and cleaner rendering */}
                 {[
-                    { title: "Total Students", value: summary.total_students || 0, color: "text-blue-600", icon: "👥" },
+                    { title: "Total Students", value: (summary.total_students || 0).toString(), color: "text-blue-600", icon: "👥" },
                     { title: "Avg. Performance", value: `${(summary.avg_overall_percentage != null ? parseFloat(String(summary.avg_overall_percentage)).toFixed(1) : '0.0')}%`, color: "text-green-600", icon: "📊" },
                     { title: "Average GPA", value: summary.avg_gpa != null ? parseFloat(String(summary.avg_gpa)).toFixed(2) : '0.00', color: "text-purple-600", icon: "⭐" },
-                    { title: "Top Performers", value: summary.excellent_count || 0, color: "text-yellow-600", icon: "🏆" },
+                    { title: "Top Performers", value: (summary.excellent_count || 0).toString(), color: "text-yellow-600", icon: "🏆" },
                 ].map((card, index) => (
                     <div key={index} className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-gray-100 hover:border-blue-500 transition-colors">
                         <div className="text-sm font-medium text-gray-500">{card.title}</div>
@@ -339,7 +342,7 @@ const StudentRankingPage: React.FC = () => {
                                         key={index}
                                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                         onClick={() => {
-                                            const sortMap = {
+                                            const sortMap: Record<string, string> = {
                                                 'Rank': 'overall_rank',
                                                 'Performance': 'overall_percentage',
                                                 'GPA': 'gpa',
@@ -443,8 +446,8 @@ const StudentRankingPage: React.FC = () => {
                     <label htmlFor="limit_select">Items per page:</label>
                     <select
                         id="limit_select"
-                        value={filters.limit}
-                        onChange={(e) => handleFilterChange('limit', Number(e.target.value))}
+                        value={filters.limit.toString()}
+                        onChange={(e) => handleFilterChange('limit', parseInt(e.target.value, 10))}
                         className="border rounded px-2 py-1"
                     >
                         {[10, 20, 50, 100].map(limit => (
@@ -476,13 +479,7 @@ const StudentRankingPage: React.FC = () => {
 
                 {/* Export Button */}
                 <a
-                    href={`/api/ranking/export?format=csv&${(() => {
-                        const params = new URLSearchParams();
-                        Object.entries(filters).forEach(([key, value]) => {
-                            params.append(key, String(value));
-                        });
-                        return params.toString();
-                    })()}`} // Export applies current filters
+                    href={rankingApi.exportRanking(filters)} // Export applies current filters
                     className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors"
                     download
                 >
