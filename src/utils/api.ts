@@ -131,7 +131,7 @@ export const notificationsApi = {
 
 // Users API functions
 export const usersApi = {
-  login: (data: { email: string; password: string }) => api.post('/users/login', data),
+  login: (data: { username: string; password: string }) => api.post('/users/login', data),
   register: (data: any) => api.post('/users/register', data),
   getUsers: () => api.get('/users'),
   updateUser: (id: string, data: any) => api.put(`/users/${id}`, data),

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { validateLogin } from "./LoginValidation";
 import { useAuth } from "../AuthContext";
+import { usersApi } from "../utils/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -41,21 +42,15 @@ function Login() {
       try {
         setServerError("");
 
-        const res = await fetch("http://localhost:5000/api/users/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
-        });
+        const response = await usersApi.login(values);
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          setServerError(data.error || "Login failed");
+        if (!response.success) {
+          setServerError(response.error || "Login failed");
         } else {
-          console.log("✅ Login successful:", data);
+          console.log("✅ Login successful:", response);
 
           // 👉 Save token in AuthContext
-          login(data.token);
+          login((response.data as any).token);
 
           // 👉 Redirect only on success
           navigate("/dashboard");
