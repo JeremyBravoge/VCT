@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Edit, Trash2, Save, Plus, X, Award, BookOpen, Search, Filter } from "lucide-react";
 
@@ -28,18 +30,19 @@ interface Mark {
 interface FormData {
   studentID: string;
   studentName: string;
-  module: string; // will store ID now, not title
+  module: string;
   level: string;
   practical: string;
   theory: string;
 }
-
 
 interface Module {
   id: number;
   title: string;
   level_name: string;
 }
+
+
 
 interface Student {
   id: string;
@@ -66,25 +69,11 @@ const StudentMarksEntryForm = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterGrade, setFilterGrade] = useState("All");
 
-  // New states for dynamic data
-  const [levels, setLevels] = useState<string[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredModules, setFilteredModules] = useState<Module[]>([]);
 
-  // Fetch modules, students, and levels on component mount
+  // Fetch students
   useEffect(() => {
-    const fetchModules = async () => {
-      try {
-        const res = await fetch("http://localhost:5000/api/student-performance/modules");
-        if (!res.ok) throw new Error("Failed to fetch modules");
-        const data: Module[] = await res.json();
-        const uniqueLevels = [...new Set(data.map(m => m.level_name))];
-        setLevels(uniqueLevels);
-      } catch (err) {
-        console.error("Error fetching modules:", err);
-      }
-    };
-
     const fetchStudents = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/student-performance/students");
@@ -95,12 +84,10 @@ const StudentMarksEntryForm = () => {
         console.error("Error fetching students:", err);
       }
     };
-
-    fetchModules();
     fetchStudents();
   }, []);
 
-  // Fetch marks from backend API
+  // Fetch all marks
   useEffect(() => {
     const fetchMarks = async () => {
       try {
@@ -108,16 +95,20 @@ const StudentMarksEntryForm = () => {
         if (!res.ok) throw new Error("Failed to fetch marks");
         const data: ApiMark[] = await res.json();
 
-        const mapped: Mark[] = data.map((item: ApiMark) => ({
+        const mapped: Mark[] = data.map((item) => ({
           id: item.student_id ?? "",
-          name: `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim().replace(/\b\w/g, l => l.toUpperCase()),
+          name: `${item.first_name ?? ""} ${item.last_name ?? ""}`
+            .trim()
+            .replace(/\b\w/g, (l) => l.toUpperCase()),
           module: item.module_title ?? "",
           moduleId: item.module_id ?? 0,
           level: item.level_name ?? "",
           practical: item.practical_marks ?? 0,
           theory: item.theory_marks ?? 0,
           total: (item.practical_marks ?? 0) + (item.theory_marks ?? 0),
-          grade: item.grade ? item.grade.charAt(0).toUpperCase() + item.grade.slice(1).toLowerCase() : "Fail",
+          grade: item.grade
+            ? item.grade.charAt(0).toUpperCase() + item.grade.slice(1).toLowerCase()
+            : "Fail",
         }));
 
         setSubmittedMarks(mapped);
@@ -125,42 +116,50 @@ const StudentMarksEntryForm = () => {
         console.error(err);
       }
     };
-
     fetchMarks();
   }, []);
 
+  // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Handle student selection to dynamically filter modules and set level
+    // Fetch enrolled modules when student is selected
     if (name === "studentID" && value) {
-      const selectedStudent = students.find(s => s.id === value);
-      if (selectedStudent) {
-        // Fetch modules for the selected course
-        fetchModulesForCourse(selectedStudent.course_id);
-      }
+      fetchModulesForCourse(value);
+    }
+
+    // Update level when module changes
+    if (name === "module" && value) {
+      const selectedModule = filteredModules.find((m) => m.id.toString() === value);
+      if (selectedModule) setFormData((prev) => ({ ...prev, level: selectedModule.level_name }));
     }
   };
 
-  // Function to fetch modules for a specific course
-  const fetchModulesForCourse = async (courseId: number) => {
+  // Fetch only enrolled modules for a student
+  const fetchModulesForCourse = async (studentId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/student-performance/modules?course_id=${courseId}`);
-      if (!res.ok) throw new Error("Failed to fetch modules for course");
-      const data: Module[] = await res.json();
-      setFilteredModules(data);
-      // Auto-set level to the first available level in filtered modules
-      if (data.length > 0) {
-        const firstLevel = data[0].level_name;
-        setFormData(prev => ({ ...prev, level: firstLevel }));
+      if (!studentId) return setFilteredModules([]);
+
+      const res = await fetch(`http://localhost:5000/api/student-performance/modules?student_id=${studentId}`);
+      if (!res.ok) throw new Error("Failed to fetch enrolled modules");
+
+      const modules: Module[] = await res.json();
+
+      setFilteredModules(modules);
+
+      // Auto-set level to first module
+      if (modules.length > 0) {
+        setFormData((prev) => ({ ...prev, level: modules[0].level_name, module: modules[0].id.toString() }));
+      } else {
+        setFormData((prev) => ({ ...prev, level: "", module: "" }));
       }
     } catch (err) {
-      console.error("Error fetching modules for course:", err);
+      console.error("Error fetching modules:", err);
       setFilteredModules([]);
+      setFormData((prev) => ({ ...prev, level: "", module: "" }));
     }
   };
-
 
   const resetForm = () => {
     setFormData({
@@ -172,73 +171,75 @@ const StudentMarksEntryForm = () => {
       theory: "",
     });
     setErrorMsg("");
+    setFilteredModules([]);
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const { studentID, module, level, practical, theory } = formData;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { studentID, module, level, practical, theory } = formData;
 
-  if (!studentID || !module || !level) {
-    setErrorMsg("⚠️ Please fill in all fields.");
-    return;
-  }
+    if (!studentID || !module || !level) {
+      setErrorMsg("⚠️ Please fill in all fields.");
+      return;
+    }
 
-  const p = parseFloat(practical);
-  const t = parseFloat(theory);
-  if (isNaN(p) || isNaN(t) || p < 0 || p > 50 || t < 0 || t > 50) {
-    setErrorMsg("⚠️ Practical/Theory marks must be between 0 and 50.");
-    return;
-  }
+    const p = parseFloat(practical);
+    const t = parseFloat(theory);
+    if (isNaN(p) || isNaN(t) || p < 0 || p > 50 || t < 0 || t > 50) {
+      setErrorMsg("⚠️ Practical/Theory marks must be between 0 and 50.");
+      return;
+    }
 
-  // ✅ Match backend field names
-const payload = {
-  student_id: formData.studentID,        // ✅ backend expects snake_case
-  module_id: formData.module,            // ✅ backend expects module_id
-  theory_marks: Number(formData.theory), // ✅ backend expects theory_marks
-  practical_marks: Number(formData.practical), // ✅ backend expects practical_marks
-};
+    const payload = {
+      student_id: studentID,
+      module_id: module,
+      practical_marks: Number(practical),
+      theory_marks: Number(theory),
+    };
 
+    try {
+      const response = await fetch("http://localhost:5000/api/student-performance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to save marks" }));
+        throw new Error(errorData.error || "Failed to save marks");
+      }
 
-try {
-  const response = await fetch("http://localhost:5000/api/student-performance", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) throw new Error("Failed to save marks");
-
-    // 🔄 Refresh marks
-    const fetchRes = await fetch("http://localhost:5000/api/student-performance");
-    const data: ApiMark[] = await fetchRes.json();
-
-    const mapped: Mark[] = data.map((item) => ({
-      id: item.student_id ?? "",
-      name: `${item.first_name ?? ""} ${item.last_name ?? ""}`.trim().replace(/\b\w/g, l => l.toUpperCase()) + "",
-      module: item.module_title ?? "",
-      level: item.level_name ?? "",
-      practical: item.practical_marks ?? 0,
-      theory: item.theory_marks ?? 0,
-      total: (item.practical_marks ?? 0) + (item.theory_marks ?? 0),
-      grade:
-        item.grade
+      // Refresh marks after saving
+      const fetchRes = await fetch("http://localhost:5000/api/student-performance");
+      const data: ApiMark[] = await fetchRes.json();
+      const mapped: Mark[] = data.map((item) => ({
+        id: item.student_id ?? "",
+        name: `${item.first_name ?? ""} ${item.last_name ?? ""}`
+          .trim()
+          .replace(/\b\w/g, (l) => l.toUpperCase()),
+        module: item.module_title ?? "",
+        moduleId: item.module_id ?? 0,
+        level: item.level_name ?? "",
+        practical: item.practical_marks ?? 0,
+        theory: item.theory_marks ?? 0,
+        total: (item.practical_marks ?? 0) + (item.theory_marks ?? 0),
+        grade: item.grade
           ? item.grade.charAt(0).toUpperCase() + item.grade.slice(1).toLowerCase()
           : "Fail",
-    }));
-
-    setSubmittedMarks(mapped);
-    setIsEditing(false);
-    resetForm();
-    setShowForm(false);
-  } catch (err) {
-    console.error(err);
-    setErrorMsg("⚠️ Failed to save marks. Please try again.");
-  }
-};
-
+      }));
+      setSubmittedMarks(mapped);
+      setIsEditing(false);
+      resetForm();
+      setShowForm(false);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(`⚠️ ${err.message}`);
+    }
+  };
 
   const handleEdit = (index: number) => {
     const mark = submittedMarks[index];
+    fetchModulesForCourse(mark.id);
+
     setFormData({
       studentID: mark.id,
       studentName: mark.name,
@@ -251,65 +252,61 @@ try {
     setShowForm(true);
   };
 
-const handleDelete = async (index: number) => {
-  const mark = submittedMarks[index];
+  const handleDelete = async (index: number) => {
+    const mark = submittedMarks[index];
+    if (!mark.id || !mark.moduleId) return alert("Missing student or module info.");
+    if (!window.confirm(`Delete ${mark.name}'s marks for ${mark.module}?`)) return;
 
-  if (!mark.id || !mark.module) {
-    alert("Missing student or module information.");
-    return;
-  }
-
-  if (!window.confirm(`Are you sure you want to delete ${mark.name}'s marks for ${mark.module}?`))
-    return;
-
-  try {
-    const response = await fetch(
-      `http://localhost:5000/api/student-performance/${mark.id}/${mark.module}`,
-      { method: "DELETE" }
-    );
-
-    if (!response.ok) throw new Error("Failed to delete record");
-
-    // ✅ Remove from UI
-    setSubmittedMarks(submittedMarks.filter((_, i) => i !== index));
-  } catch (err) {
-    console.error(err);
-    alert("❌ Failed to delete record. Please try again.");
-  }
-};
-
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/student-performance/${mark.id}/${mark.moduleId}`,
+        { method: "DELETE" }
+      );
+      if (!response.ok) throw new Error("Failed to delete record");
+      setSubmittedMarks(submittedMarks.filter((_, i) => i !== index));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to delete record. Please try again.");
+    }
+  };
 
   const getGradeColor = (grade: string) => {
     switch (grade) {
-      case "Distinction": return "bg-green-100 text-green-800";
-      case "Credit": return "bg-blue-100 text-blue-800";
-      case "Pass": return "bg-yellow-100 text-yellow-800";
-      default: return "bg-red-100 text-red-800";
+      case "Distinction":
+        return "bg-green-100 text-green-800";
+      case "Credit":
+        return "bg-blue-100 text-blue-800";
+      case "Pass":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-red-100 text-red-800";
     }
   };
 
   const filteredMarks = submittedMarks.filter((mark) => {
-    const name = mark.name?.toLowerCase() ?? "";
-    const id = mark.id?.toLowerCase() ?? "";
-    const moduleName = mark.module?.toLowerCase() ?? "";
-    const level = mark.level?.toLowerCase() ?? "";
     const query = searchQuery.toLowerCase();
-
-    const matchesSearch = name.includes(query) || id.includes(query) || moduleName.includes(query) || level.includes(query);
+    const matchesSearch =
+      mark.name.toLowerCase().includes(query) ||
+      mark.id.toLowerCase().includes(query) ||
+      mark.module.toLowerCase().includes(query) ||
+      mark.level.toLowerCase().includes(query);
     const matchesGrade = filterGrade === "All" || mark.grade === filterGrade;
-
     return matchesSearch && matchesGrade;
   });
 
-  const gradeCounts = submittedMarks.reduce<Record<string, number>>((acc, curr) => {
-    const g = curr.grade || "Fail";
-    acc[g] = (acc[g] || 0) + 1;
-    return acc;
-  }, { Distinction: 0, Credit: 0, Pass: 0, Fail: 0 });
+  const gradeCounts = submittedMarks.reduce<Record<string, number>>(
+    (acc, curr) => {
+      const g = curr.grade || "Fail";
+      acc[g] = (acc[g] || 0) + 1;
+      return acc;
+    },
+    { Distinction: 0, Credit: 0, Pass: 0, Fail: 0 }
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-purple-100 py-10 px-6">
       <div className="max-w-6xl mx-auto">
+        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold text-gray-800 flex justify-center items-center gap-2">
             <Award className="text-indigo-600" /> Student Marks Portal
@@ -397,9 +394,13 @@ const handleDelete = async (index: number) => {
             <table className="w-full border-collapse text-sm">
               <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                 <tr>
-                  {["ID", "Name", "Module", "Level", "Practical", "Theory", "Total", "Grade", "Actions"].map((head) => (
-                    <th key={head} className="p-3 text-left font-semibold">{head}</th>
-                  ))}
+                  {["ID", "Name", "Module", "Level", "Practical", "Theory", "Total", "Grade", "Actions"].map(
+                    (head) => (
+                      <th key={head} className="p-3 text-left font-semibold">
+                        {head}
+                      </th>
+                    )
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -413,7 +414,11 @@ const handleDelete = async (index: number) => {
                     <td className="p-3">{mark.theory}</td>
                     <td className="p-3 font-semibold">{mark.total}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${getGradeColor(mark.grade)}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-bold ${getGradeColor(
+                          mark.grade
+                        )}`}
+                      >
                         {mark.grade}
                       </span>
                     </td>
@@ -455,49 +460,83 @@ const handleDelete = async (index: number) => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="text-sm text-gray-600">Student</label>
-                  <select name="studentID" value={formData.studentID} onChange={handleChange} className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500">
+                  <select
+                    name="studentID"
+                    value={formData.studentID}
+                    onChange={handleChange}
+                    className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500"
+                  >
                     <option value="">Select Student</option>
-                    {students.map((s) => <option key={s.id} value={s.id}>{`${s.first_name} ${s.last_name}`}</option>)}
+                    {students.map((s, index) => (
+                      <option key={`${s.id}-${index}`} value={s.id}>
+                        {`${s.first_name} ${s.last_name}`}
+                      </option>
+                    ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="text-sm text-gray-600">Module</label>
                   <select
-                           name="module"
-                           value={formData.module}
-                           onChange={handleChange}
-                           className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500"
-                              >
-                        <option value="">Select Module</option>
-                          {filteredModules.map((m) => (
-                              <option key={m.id} value={m.id}>{m.title}</option>
-                                            ))}
-                                </select>
-
-                </div>
-                <div>
-                  <label className="text-sm text-gray-600">Level</label>
-                  <select name="level" value={formData.level} onChange={handleChange} className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500">
-                    <option value="">Select Level</option>
-                    {levels.map((l) => <option key={l}>{l}</option>)}
+                    name="module"
+                    value={formData.module}
+                    onChange={handleChange}
+                    className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Module</option>
+                    {filteredModules.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.title}
+                      </option>
+                    ))}
                   </select>
                 </div>
+
+                <div>
+                  <label className="text-sm text-gray-600">Level</label>
+                  <input
+                    type="text"
+                    name="level"
+                    value={formData.level}
+                    readOnly
+                    className="w-full mt-1 p-2 rounded-md border border-gray-300 bg-gray-100 cursor-not-allowed"
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-gray-600">Practical (0–50)</label>
-                    <input type="number" name="practical" value={formData.practical} onChange={handleChange} min="0" max="50" className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500" />
+                    <label className="text-sm text-gray-600">Practical Marks</label>
+                    <input
+                      type="number"
+                      name="practical"
+                      value={formData.practical}
+                      onChange={handleChange}
+                      min={0}
+                      max={50}
+                      className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500"
+                    />
                   </div>
                   <div>
-                    <label className="text-sm text-gray-600">Theory (0–50)</label>
-                    <input type="number" name="theory" value={formData.theory} onChange={handleChange} min="0" max="50" className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500" />
+                    <label className="text-sm text-gray-600">Theory Marks</label>
+                    <input
+                      type="number"
+                      name="theory"
+                      value={formData.theory}
+                      onChange={handleChange}
+                      min={0}
+                      max={50}
+                      className="w-full mt-1 p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500"
+                    />
                   </div>
                 </div>
 
-                {errorMsg && <p className="text-red-600 text-sm bg-red-50 p-2 rounded-md border border-red-200">{errorMsg}</p>}
+                {errorMsg && <p className="text-red-600 text-sm">{errorMsg}</p>}
 
-                <button type="submit" className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-white transition-all ${isEditing ? "bg-green-600 hover:bg-green-700" : "bg-indigo-600 hover:bg-indigo-700"}`}>
-                  {isEditing ? <Save size={18} /> : <Plus size={18} />}
-                  {isEditing ? "Save Changes" : "Add Marks"}
+                <button
+                  type="submit"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium flex justify-center items-center gap-2"
+                >
+                  <Save size={16} /> {isEditing ? "Update Marks" : "Submit Marks"}
                 </button>
               </form>
             </div>

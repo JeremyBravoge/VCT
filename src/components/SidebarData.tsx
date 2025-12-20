@@ -1,4 +1,3 @@
-import HomeIcon from '@mui/icons-material/Home';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import PermMediaIcon from '@mui/icons-material/PermMedia';
@@ -8,35 +7,84 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import SchoolIcon from '@mui/icons-material/School';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
+import PeopleIcon from '@mui/icons-material/People';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import PersonIcon from '@mui/icons-material/Person';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import SchoolIcon from '@mui/icons-material/School';
+import PersonPinIcon from '@mui/icons-material/PersonPin';
+import UpgradeIcon from '@mui/icons-material/Upgrade';
+import TripOriginIcon from '@mui/icons-material/TripOrigin';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+
 export const SidebarData = [
-    
-            {
+
+    {
         title:"Dashboard",
         icon:<DashboardIcon />,
         link:"/Dashboard"
     },
     {
-        title:"Home",
-        icon:<HomeIcon />,
-        link:"/"
-    },
+        title:"Students",
+        icon:<PeopleIcon />,
+        subItems: [
             {
-        title:"Admision",
-        icon:<PersonAddIcon />,
-        link:"/AdmissionsPage"
-    },
-     {
-        title:"Student List",
-        icon:<PersonOutlineIcon  />,
-        link:"/StudentDetailModal"
-    },
+                title:"Admission",
+                icon:<PersonAddIcon />,
+                link:"/AdmissionsPage"
+            },
+            {
+                title:"Enrollment",
+                icon:<PersonIcon/>,
+                link:"/enrollment"
 
-        {
+            },
+            {
+                title:"Student List",
+                icon:<PersonOutlineIcon  />,
+                link:"/StudentDetailModal"
+            },
+            {
+                title:"Marks-entry",
+                icon:<TaskAltIcon/>,
+                link:"/marks-entry"
+            }
+        ]
+    },
+    {
         title:"Department",
         icon:<AnalyticsIcon />,
-        link:"/departments/management"
+        subItems:[
+            {
+                title:"Department",
+                icon:<AccountTreeIcon/>,
+                link:"/departments/management"
+            },
+            {
+                title:"Courses",
+                icon:<TripOriginIcon/>,
+                link:"/courses"
+            },
+            {
+                title:"Department",
+                icon:<TripOriginIcon/>,
+                link:"/department"
+            },
+            {
+                title:"Couser Performance",
+                icon:<TripOriginIcon/>,
+                link:"/courseperformance"
+            },
+            {
+                title:"Level Performance",
+                icon:<TripOriginIcon/>,
+                link:"/level-performance"
+            }
+        ]
     },
     {
         title:"Payments",
@@ -46,41 +94,68 @@ export const SidebarData = [
         {
         title:"Results",
         icon:<AnalyticsIcon />,
-        link:"studentperformance"
+        subItems:[
+            {
+                title:"Performance",
+                icon:<AssessmentIcon/>,
+                link:"/studentperformance"
+            },
+            {
+                title:"Ranking",
+                icon:<SchoolIcon/>,
+                link:"/ranking"
+            }
+        ]
+    },
+    {
+        title:"Report",
+        icon:<AssignmentIcon/>,
+        link:"/report"
     },
         {
-        title:"Images",
+        title:"Media",
         icon:<PermMediaIcon />,
-        link:"/media"
+        subItems:[
+            {
+                title:"Exams",
+                icon:<AssignmentIcon/>,
+                link:"/exams"
+            },
+            {
+                title:"Graduation Pic",
+                icon:<UpgradeIcon/>,
+                link:"/graduation"
+            }
+        ]
     },
         {
-        title:"Mailbox",
+        title:"Academics",
         icon:<TaskAltIcon/>,
-        link:"/marks-entry"
+        link:"/academics"
     },
     {
         title:"Instructors",
-        icon:<SchoolIcon />,
+        icon:<PersonPinIcon />,
         link:"/trainerspage"
     },
             {
         title:"Notifications",
         icon:<NotificationsIcon />,
-        link:"/"
+        link:"/notification"
     },
 {
         title:"Profile",
         icon:<AccountCircleIcon />,
         link:"/UserManagement"
     },
-    
+
     {
-        title:"Settings",
+        title:"setting",
         icon:<SettingsIcon />,
-        link:"/settiings"
+        link:"/setting"
     },
 
-    
-    
+
+
 ]
 

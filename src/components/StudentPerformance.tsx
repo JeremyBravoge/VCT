@@ -4,6 +4,7 @@ import {
   CardHeader,
   CardContent,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,7 +18,17 @@ import { Button } from "@/components/ui/button";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"; // New Table component for better structure
+import { Search, User, TrendingUp, BookOpen, CheckCircle, XCircle } from 'lucide-react'; // Modern icons
 
+// --- Interface Definitions (Kept as is) ---
 interface StudentInfo {
   name: string;
   admissionNo: string;
@@ -54,6 +65,7 @@ interface PerformanceData {
 }
 
 const VocationalPerformance: React.FC = () => {
+  // --- State Management (Kept as is) ---
   const [admissionNo, setAdmissionNo] = useState("STU001");
   const [level, setLevel] = useState("Level 1");
   const [performanceData, setPerformanceData] = useState<PerformanceData | null>(
@@ -62,6 +74,7 @@ const VocationalPerformance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // --- API Fetch Logic (Kept as is to maintain functional API) ---
   const fetchPerformance = async () => {
     if (!admissionNo.trim()) {
       toast({
@@ -92,7 +105,7 @@ const VocationalPerformance: React.FC = () => {
               ? `http://localhost:5000/${data.studentInfo.profileImage}`
               : "https://ui-avatars.com/api/?name=" +
                 encodeURIComponent(data.studentInfo.name) +
-                "&background=4f46e5&color=fff",
+                "&background=3b82f6&color=fff&size=96", // Updated background/size for better fit
         },
       });
       toast({
@@ -104,7 +117,7 @@ const VocationalPerformance: React.FC = () => {
       toast({
         title: "Error",
         description:
-          "Failed to fetch performance data. Please check the admission number.",
+          "Failed to fetch performance data. Please check the admission number and level.",
         variant: "destructive",
       });
       setPerformanceData(null);
@@ -117,154 +130,243 @@ const VocationalPerformance: React.FC = () => {
     fetchPerformance();
   }, []);
 
+  // --- Utility Function (Kept as is, using Tailwind classes) ---
   const getGradeColor = (grade: string) => {
     switch (grade.toLowerCase()) {
       case "distinction":
-        return "text-green-700 font-semibold";
+        return "text-green-600 font-semibold bg-green-50/50";
       case "credit":
-        return "text-blue-700 font-semibold";
+        return "text-blue-600 font-semibold bg-blue-50/50";
       case "pass":
-        return "text-yellow-600 font-semibold";
+        return "text-yellow-600 font-semibold bg-yellow-50/50";
       default:
-        return "text-red-600 font-semibold";
+        return "text-red-600 font-semibold bg-red-50/50";
     }
   };
+  
+  const getExamStatusIcon = (status: string) => {
+    const lowerStatus = status.toLowerCase();
+    if (lowerStatus.includes('pass') || lowerStatus.includes('completed')) {
+      return <CheckCircle className="w-4 h-4 text-green-500 mr-1" />;
+    } else if (lowerStatus.includes('fail') || lowerStatus.includes('incomplete')) {
+      return <XCircle className="w-4 h-4 text-red-500 mr-1" />;
+    }
+    return null;
+  };
 
+  // --- Rendered Component (Improved UI/UX) ---
   return (
-    <div className="bg-gradient-to-br from-indigo-50 via-white to-purple-50 min-h-screen p-8">
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row items-center justify-start gap-4 mb-8">
-        <Input
-          placeholder="Enter Admission No."
-          value={admissionNo}
-          onChange={(e) => setAdmissionNo(e.target.value)}
-          className="w-full md:w-1/3 border-gray-300"
-        />
-        <Select value={level} onValueChange={setLevel}>
-          <SelectTrigger className="w-full md:w-1/3 border-gray-300">
-            <SelectValue placeholder="Select Level" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Level 1">Level 1</SelectItem>
-            <SelectItem value="Level 2">Level 2</SelectItem>
-            <SelectItem value="Level 3">Level 3</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          onClick={fetchPerformance}
-          disabled={loading}
-          className="bg-yellow-600 hover:bg-yellow-700 text-white w-full md:w-[140px] font-medium shadow"
-        >
-          {loading ? "SEARCHING..." : "SEARCH"}
-        </Button>
-      </div>
+    <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-6 flex items-center">
+        <BookOpen className="w-8 h-8 mr-3 text-blue-600" />
+        Student Performance Dashboard
+      </h1>
 
-      {/* Duplicate layout removed; single layout block retained below */}
-
-       {/* Main layout */}
-<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-  {/* Left: Table Section */}
-  <div className="lg:col-span-3">
-    <Card className="shadow-lg rounded-xl border border-yellow-700">
-      <CardHeader className="bg-yellow-500 rounded-t-xl">
-        <CardTitle className="text-gray-1000 text-lg text-center">Module Performance</CardTitle>
-      </CardHeader>
-      <CardContent className="p-6">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 text-left">
-              <th className="p-2 border">Code</th>
-              <th className="p-2 border">Module Title</th>
-              <th className="p-2 border text-center">Theory (%)</th>
-              <th className="p-2 border text-center">Practical (%)</th>
-              <th className="p-2 border text-center">Grade</th>
-            </tr>
-          </thead>
-          <tbody>
-            {performanceData?.modules.map((m: Module, i: number) => (
-              <tr key={i} className="hover:bg-indigo-50 transition-all">
-                <td className="p-2 border font-medium">{m.code}</td>
-                <td className="p-2 border">{m.title}</td>
-                <td className="p-2 border text-center">{m.theory}</td>
-                <td className="p-2 border text-center">{m.practical}</td>
-                <td className={`p-2 border text-center ${getGradeColor(m.grade)}`}>
-                  {m.grade}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="flex justify-between mt-3 text-gray-700 text-sm">
-          <p>Total Modules: <span className="font-semibold">{performanceData?.performance.totalModules}</span></p>
-          <p>Completed: <span className="font-semibold">{performanceData?.performance.completedModules}</span></p>
-          <p>Exam Status: <span className="font-semibold text-green-600">{performanceData?.performance.examStatus}</span></p>
+      {/* Filter and Search Section */}
+      <Card className="mb-8 p-4 shadow-lg border-t-4 border-blue-500">
+        <CardHeader className="p-0 pb-3">
+          <CardTitle className="text-xl font-bold text-gray-800">Filter Performance</CardTitle>
+        </CardHeader>
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          <Input
+            placeholder="Enter Admission No. (e.g., STU001)"
+            value={admissionNo}
+            onChange={(e) => setAdmissionNo(e.target.value)}
+            className="w-full md:flex-1 h-10 border-gray-300 focus:border-blue-500"
+          />
+          <Select value={level} onValueChange={setLevel}>
+            <SelectTrigger className="w-full md:w-[200px] h-10 border-gray-300 focus:ring-blue-500">
+              <SelectValue placeholder="Select Level" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Level 1">Level 1</SelectItem>
+              <SelectItem value="Level 2">Level 2</SelectItem>
+              <SelectItem value="Level 3">Level 3</SelectItem>
+              {/* Add more levels dynamically if needed */}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={fetchPerformance}
+            disabled={loading}
+            className="w-full md:w-[150px] h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md transition-colors duration-200"
+          >
+            {loading ? (
+                <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    SEARCHING...
+                </>
+            ) : (
+              <><Search className="w-4 h-4 mr-2" />SEARCH</>
+            )}
+          </Button>
         </div>
-      </CardContent>
-    </Card>
-  </div>
+      </Card>
 
-  {/* Right: Student Profile (was Attendance) */}
-  <Card className="shadow-lg rounded-x3 overflow-hidden border border-yellow-100 bg-gradient-to-r from--600 to-red-50">
-    <div className="bg-gradient-to-r from-yellow-600 to-red-600 h-24 relative">
-      <img
-        src={performanceData?.studentInfo.profileImage}
-        alt="Profile"
-        className="w-24 h-24 rounded-full border-4 border-red-600 absolute -bottom-10 left-6 object-cover"
-      />
-    </div>
-    <CardContent className="pt-14 pb-6 text-sm space-y-1">
-      <h2 className="text-lg font-semibold text-gray-800">{performanceData?.studentInfo.name}</h2>
-      <p className="text-gray-500 mb-2">
-        Admission No: <span className="font-medium text-gray-800">{performanceData?.studentInfo.admissionNo}</span>
-      </p>
-      <p><strong>Trade Area:</strong> {performanceData?.studentInfo.tradeArea}</p>
-      <p><strong>Training Center:</strong> {performanceData?.studentInfo.trainingCenter}</p>
-      <p><strong>Level:</strong> {performanceData?.studentInfo.level}</p>
-      <p><strong>Duration:</strong> {performanceData?.studentInfo.duration}</p>
-    </CardContent>
-  </Card>
-
-        {/* Performance Breakdown */}
-        <Card className="lg:col-span-2 shadow-lg rounded-xl border border-gray-100">
-          <CardHeader className="bg-indigo-50 rounded-t-xl">
-            <CardTitle className="text-gray-800">Performance Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 items-center gap-6 p-6">
-            <div className="space-y-2 text-sm md:text-base">
-              <p>
-                <strong>Theory Marks:</strong>{" "}
-                {performanceData?.performance.theoryMarks}%
-              </p>
-              <p>
-                <strong>Practical Marks:</strong>{" "}
-                {performanceData?.performance.practicalMarks}%
-              </p>
-              <p>
-                <strong>Average Marks:</strong>{" "}
-                {performanceData?.performance.averageMark}%
-              </p>
-              <p>
-                <strong>Exam Status:</strong>{" "}
-                {performanceData?.performance.examStatus}
-              </p>
+      {/* Main Content Dashboard Layout */}
+      {performanceData && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          {/* Column 1: Student Profile Card */}
+          <Card className="lg:col-span-1 shadow-xl overflow-hidden bg-white hover:shadow-2xl transition-shadow duration-300">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 h-28 relative">
+              <img
+                src={performanceData.studentInfo.profileImage || undefined}
+                alt="Profile"
+                className="w-28 h-28 rounded-full border-4 border-white shadow-lg absolute -bottom-14 left-1/2 transform -translate-x-1/2 object-cover"
+              />
             </div>
-            <div className="flex items-center justify-center">
-              <div style={{ width: 130, height: 130 }}>
+            <CardContent className="pt-16 pb-6 text-center space-y-1">
+              <h2 className="text-xl font-bold text-gray-900">{performanceData.studentInfo.name}</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Admission No: <span className="font-semibold text-gray-700">{performanceData.studentInfo.admissionNo}</span>
+              </p>
+              <div className="text-left text-sm space-y-2 border-t pt-3 mt-3">
+                <p><strong><BookOpen className="w-4 h-4 inline mr-2 text-blue-500" />Trade Area:</strong> <span className="float-right font-medium text-gray-700">{performanceData.studentInfo.tradeArea}</span></p>
+                <p><strong><User className="w-4 h-4 inline mr-2 text-blue-500" />Training Center:</strong> <span className="float-right font-medium text-gray-700">{performanceData.studentInfo.trainingCenter}</span></p>
+                <p><strong>Level:</strong> <span className="float-right font-medium text-gray-700">{performanceData.studentInfo.level}</span></p>
+                <p><strong>Duration:</strong> <span className="float-right font-medium text-gray-700">{performanceData.studentInfo.duration}</span></p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Column 2: Key Performance Indicators (KPIs) and Visuals */}
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* KPI 1: Average Mark (Visual Focus) */}
+            <Card className="col-span-1 shadow-lg border-l-4 border-green-500 p-4 flex flex-col items-center justify-center">
+              <CardTitle className="text-lg font-semibold text-gray-700 mb-4 flex items-center"><TrendingUp className="w-5 h-5 text-green-500 mr-2"/>Average Mark</CardTitle>
+              <div style={{ width: 120, height: 120 }}>
                 <CircularProgressbar
-                  value={performanceData?.performance.averageMark || 0}
-                  text={`${performanceData?.performance.averageMark || 0}%`}
+                  value={performanceData.performance.averageMark}
+                  text={`${performanceData.performance.averageMark}%`}
                   styles={buildStyles({
-                    pathColor: "#16a34a",
-                    textColor: "#1e293b",
-                    trailColor: "#e2e8f0",
+                    pathColor: `#10b981`, // Green-500
+                    textColor: "#1f2937", // Gray-800
+                    trailColor: "#e5e7eb", // Gray-200
+                    textSize: "18px",
+                  })}
+                />
+              </div>
+              <CardDescription className="mt-3 text-green-600 font-bold text-lg">Goal Met</CardDescription>
+            </Card>
+
+            {/* KPI 2: Attendance */}
+            <Card className="col-span-1 shadow-lg border-l-4 border-yellow-500 p-4 flex flex-col items-center justify-center">
+              <CardTitle className="text-lg font-semibold text-gray-700 mb-4 flex items-center"><User className="w-5 h-5 text-yellow-500 mr-2"/>Attendance Rate</CardTitle>
+              <div style={{ width: 120, height: 120 }}>
+                <CircularProgressbar
+                  value={(performanceData.performance.attendance / performanceData.performance.totalClasses) * 100}
+                  text={`${performanceData.performance.attendance}/${performanceData.performance.totalClasses}`}
+                  styles={buildStyles({
+                    pathColor: `#f59e0b`, // Yellow-500
+                    textColor: "#1f2937",
+                    trailColor: "#e5e7eb",
                     textSize: "16px",
                   })}
                 />
               </div>
-            </div>
-          </CardContent>
+              <CardDescription className="mt-3 text-sm text-gray-600">Total Classes: {performanceData.performance.totalClasses}</CardDescription>
+            </Card>
+
+            {/* KPI 3: Module Completion */}
+            <Card className="col-span-1 shadow-lg border-l-4 border-indigo-500 p-4 flex flex-col items-center justify-center">
+              <CardTitle className="text-lg font-semibold text-gray-700 mb-4 flex items-center"><BookOpen className="w-5 h-5 text-indigo-500 mr-2"/>Module Progress</CardTitle>
+              <div style={{ width: 120, height: 120 }}>
+                <CircularProgressbar
+                  value={(performanceData.performance.completedModules / performanceData.performance.totalModules) * 100}
+                  text={`${performanceData.performance.completedModules}/${performanceData.performance.totalModules}`}
+                  styles={buildStyles({
+                    pathColor: `#6366f1`, // Indigo-500
+                    textColor: "#1f2937",
+                    trailColor: "#e5e7eb",
+                    textSize: "16px",
+                  })}
+                />
+              </div>
+              <CardDescription className="mt-3 text-sm text-gray-600">Total Modules: {performanceData.performance.totalModules}</CardDescription>
+            </Card>
+
+            {/* Performance Breakdown Summary - Use the rest of the space in the grid */}
+            <Card className="col-span-full shadow-lg border-t-2 border-indigo-500">
+                <CardHeader className="p-4 border-b">
+                    <CardTitle className="text-xl font-bold text-gray-800">Exam Results Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-gray-500 font-medium">Theory Marks</p>
+                        <p className="text-xl font-bold text-blue-600 mt-1">{performanceData.performance.theoryMarks}%</p>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-gray-500 font-medium">Practical Marks</p>
+                        <p className="text-xl font-bold text-blue-600 mt-1">{performanceData.performance.practicalMarks}%</p>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-gray-500 font-medium">Overall Average</p>
+                        <p className="text-xl font-bold text-blue-600 mt-1">{performanceData.performance.averageMark}%</p>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg flex flex-col justify-center items-center">
+                        <p className="text-xs text-gray-500 font-medium">Final Status</p>
+                        <p className={`text-xl font-bold mt-1 flex items-center ${performanceData.performance.examStatus.toLowerCase().includes('pass') ? 'text-green-700' : 'text-red-700'}`}>
+                            {getExamStatusIcon(performanceData.performance.examStatus)}
+                            {performanceData.performance.examStatus}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
+          </div>
+          
+          {/* Column 3 (Full Width Below KPIs): Module Performance Table */}
+          <Card className="lg:col-span-4 shadow-xl rounded-xl">
+            <CardHeader className="bg-gray-100 rounded-t-xl border-b p-4">
+              <CardTitle className="text-xl font-bold text-gray-800 flex items-center">
+                <BookOpen className="w-5 h-5 mr-2 text-blue-600" />
+                Detailed Module Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="w-[100px] text-gray-700">Code</TableHead>
+                      <TableHead className="min-w-[200px] text-gray-700">Module Title</TableHead>
+                      <TableHead className="text-center text-gray-700">Theory (%)</TableHead>
+                      <TableHead className="text-center text-gray-700">Practical (%)</TableHead>
+                      <TableHead className="text-center text-gray-700">Grade</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {performanceData.modules.map((m: Module, i: number) => (
+                      <TableRow key={i} className="hover:bg-blue-50/50">
+                        <TableCell className="font-medium">{m.code}</TableCell>
+                        <TableCell>{m.title}</TableCell>
+                        <TableCell className="text-center">{m.theory}</TableCell>
+                        <TableCell className="text-center">{m.practical}</TableCell>
+                        <TableCell className={`text-center font-bold ${getGradeColor(m.grade)}`}>
+                            {m.grade}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+        </div>
+      )}
+
+      {/* No Data State */}
+      {!performanceData && !loading && (
+        <Card className="text-center p-10 mt-10 shadow-lg border-t-4 border-red-500">
+          <CardTitle className="text-2xl text-red-600 mb-2">No Performance Data Found</CardTitle>
+          <CardDescription>Please enter a valid Admission Number and select the correct Level, then click SEARCH.</CardDescription>
         </Card>
-      </div>
+      )}
     </div>
   );
 };

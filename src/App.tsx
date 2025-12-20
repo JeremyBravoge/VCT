@@ -21,7 +21,16 @@ import MediaDashboard from "./components/MediaDashboard.tsx";
 import TopBar from "./components/layout/TopBar";
 import DepartmentManagement from "./components/DepartmentManagement";
 import Departments from "./components/Department";
-
+import EnrollmentForm from "./components/EnrollmentForm.tsx";
+import ManageAcademics from "./components/ManageAcademics.tsx";
+import ExamsMediaDashboard from "./components/ExamsMediaDashboard.tsx";
+import GraduationMedia from "./components/GraduationMedia.tsx";
+import CoursePerformancePage from "./components/CoursePerformancePage.tsx";
+import LevelPerformance from "./components/LevelPerformance.tsx";
+import ReportsDashboard from "./components/Report.tsx";
+import StudentRanking from "./components/StudentRankingPage.tsx";
+import Notifications from "./components/NotificationSettings.tsx";
+import SettingsPage from "./components/settings.tsx";
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -82,7 +91,19 @@ function App() {
         <Route path="/media" element={<ProtectedRoute><MediaDashboard /></ProtectedRoute>} />
         <Route path="/departments/management" element={<DepartmentManagement />} />
         <Route path="/department" element={<ProtectedRoute><Departments /></ProtectedRoute>} />
+        <Route path="/enrollment" element={<ProtectedRoute><EnrollmentForm/></ProtectedRoute>}/>
+        <Route path="/academics" element={<ProtectedRoute><ManageAcademics/></ProtectedRoute>}/>
+        <Route path="/graduation" element={<ProtectedRoute><GraduationMedia/></ProtectedRoute>}/>
+        <Route path="/exams" element={<ProtectedRoute><ExamsMediaDashboard></ExamsMediaDashboard></ProtectedRoute>} />
+        <Route path="/courseperformance" element={<ProtectedRoute><CoursePerformancePage /></ProtectedRoute>} />
+        <Route path="/level-performance" element={<ProtectedRoute><LevelPerformance /></ProtectedRoute>} />
+        <Route path="/ranking" element={<ProtectedRoute><StudentRanking /></ProtectedRoute>} />
+        <Route path="/report" element={<ProtectedRoute><ReportsDashboard /></ProtectedRoute>} />
+        <Route path="/notification" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/setting" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+  
       </Routes>
+
     </main>
   </div>
 </div>

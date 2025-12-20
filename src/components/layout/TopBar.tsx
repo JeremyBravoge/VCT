@@ -193,7 +193,7 @@ export default function DashboardTopbar() {
   >
     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
       <h3 className="text-sm font-semibold text-gray-700">Notifications</h3>
-      <button className="text-xs text-blue-600 hover:underline">
+      <button onClick={() => navigate("/notification")} className="text-xs text-blue-600 hover:underline">
         Mark all as read
       </button>
     </div>
