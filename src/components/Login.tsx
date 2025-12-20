@@ -50,7 +50,7 @@ function Login() {
           console.log("✅ Login successful:", response);
 
           // 👉 Save token in AuthContext
-          login((response.data as any).token);
+          login((response.data as { token: string }).token);
 
           // 👉 Redirect only on success
           navigate("/dashboard");
