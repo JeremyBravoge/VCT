@@ -139,10 +139,25 @@ export const notificationsApi = {
 // Users API functions
 export const usersApi = {
   // Normalize login payload so frontend can send either `email` or `username`.
-  // Backend now requires `username` — ensure we always post `{ username, password }`.
-  login: (data: { username?: string; email?: string; password: string }) => {
+  // Backend may return either `{ success, data: { token } }` or legacy `{ message, token }`.
+  // Normalize both shapes so the rest of the app can rely on `{ success, data: { token } }`.
+  login: async (data: { username?: string; email?: string; password: string }) => {
     const payload = { username: data.username ?? data.email, password: data.password } as { username: string; password: string };
-    return api.post('/users/login', payload);
+
+    const res = await api.post('/users/login', payload) as any;
+
+    // If backend returned a top-level token (legacy), convert to ApiResponse shape
+    if (res && typeof res === 'object' && !('success' in res) && ('token' in res || 'accessToken' in res)) {
+      const token = (res.token ?? res.accessToken) as string;
+      return {
+        success: true,
+        data: { token },
+        message: res.message ?? 'Login successful',
+      } as ApiResponse<{ token: string }>;
+    }
+
+    // Otherwise assume API already returned { success, data }
+    return res as ApiResponse<{ token: string }>;
   },
   register: (data: any) => api.post('/users/register', data),
   getUsers: () => api.get('/users'),

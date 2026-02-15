@@ -67,7 +67,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/dashboard")
+    fetch("/api/dashboard")
       .then((res) => res.json())
       .then((data) => {
         const totalStudents = data.departments.reduce(

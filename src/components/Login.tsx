@@ -44,18 +44,18 @@ function Login() {
 
         // send explicit payload using `username` (backend requires username)
         const payload = { username: values.username, password: values.password };
-        const response = await usersApi.login(payload);
+        const response = await usersApi.login(payload) as any;
 
-        if (!response.success) {
-          setServerError(response.error || "Login failed");
+        // Accept both normalized ({ success, data: { token } }) and legacy ({ token }) shapes
+        const token = response?.data?.token ?? response?.token ?? response?.accessToken;
+
+        if ((response && response.success === false) || !token) {
+          setServerError(response?.error || response?.message || "Login failed");
         } else {
           console.log("✅ Login successful:", response);
 
-          // 👉 Save token in AuthContext (AuthProvider currently uses a mock)
-          // The login() call here passes the token to the app's auth flow.
-          login((response.data as { token: string }).token as unknown as string);
-
-          // 👉 Redirect only on success
+          // Save token in AuthContext and proceed
+          login(token as string);
           navigate("/dashboard");
         }
       } catch {

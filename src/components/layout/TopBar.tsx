@@ -49,7 +49,7 @@ export default function DashboardTopbar() {
       setError(null);
 
       try {
-        const response = await fetch("http://localhost:5000/api/activities/recent", {
+        const response = await fetch("/api/activities/recent", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -92,7 +92,7 @@ export default function DashboardTopbar() {
       if (!token) return;
 
       try {
-        const res = await fetch("http://localhost:5000/api/users/me", {
+        const res = await fetch("/api/users/me", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -110,7 +110,7 @@ export default function DashboardTopbar() {
           email: data.email,
           role: data.role,
           profile_image: data.profile_image
-            ? `http://localhost:5000/uploads/${data.profile_image}`
+            ? `/uploads/${data.profile_image}`
             : "https://randomuser.me/api/portraits/men/32.jpg",
         };
 

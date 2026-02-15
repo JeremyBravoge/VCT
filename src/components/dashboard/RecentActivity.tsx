@@ -31,7 +31,7 @@ export function RecentActivity() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  fetch("http://localhost:5000/api/activities/recent")
+  fetch("/api/activities/recent")
     .then((res) => res.json())
     .then((data) => {
       setActivities(data);
