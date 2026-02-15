@@ -42,15 +42,18 @@ function Login() {
       try {
         setServerError("");
 
-        const response = await usersApi.login(values);
+        // send explicit payload using `username` (backend requires username)
+        const payload = { username: values.username, password: values.password };
+        const response = await usersApi.login(payload);
 
         if (!response.success) {
           setServerError(response.error || "Login failed");
         } else {
           console.log("✅ Login successful:", response);
 
-          // 👉 Save token in AuthContext
-          login((response.data as { token: string }).token);
+          // 👉 Save token in AuthContext (AuthProvider currently uses a mock)
+          // The login() call here passes the token to the app's auth flow.
+          login((response.data as { token: string }).token as unknown as string);
 
           // 👉 Redirect only on success
           navigate("/dashboard");

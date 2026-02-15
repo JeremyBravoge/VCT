@@ -1,4 +1,11 @@
-export const BASE_URL = 'https://college-cohatmi-college-1.onrender.com';
+// Behavior:
+// - Development (import.meta.env.DEV === true): use a relative base (''), so Vite's dev proxy handles /api → avoids CORS.
+// - Production: prefer VITE_API_BASE if provided, otherwise fall back to the Render deployment URL.
+const envApiBase = import.meta.env.VITE_API_BASE; // may be undefined
+const fallbackProductionBase = 'https://college-cohatmi-college-1.onrender.com';
+export const BASE_URL = import.meta.env.DEV
+  ? '' // always use relative path in dev so Vite proxy forwards requests
+  : (envApiBase ?? fallbackProductionBase);
 const API_BASE = `${BASE_URL}/api`;
 
 interface ApiResponse<T = unknown> {
@@ -131,7 +138,12 @@ export const notificationsApi = {
 
 // Users API functions
 export const usersApi = {
-  login: (data: { username: string; password: string }) => api.post('/users/login', data),
+  // Normalize login payload so frontend can send either `email` or `username`.
+  // Backend now requires `username` — ensure we always post `{ username, password }`.
+  login: (data: { username?: string; email?: string; password: string }) => {
+    const payload = { username: data.username ?? data.email, password: data.password } as { username: string; password: string };
+    return api.post('/users/login', payload);
+  },
   register: (data: any) => api.post('/users/register', data),
   getUsers: () => api.get('/users'),
   updateUser: (id: string, data: any) => api.put(`/users/${id}`, data),
