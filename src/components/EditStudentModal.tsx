@@ -47,7 +47,7 @@ const EditStudentModal: React.FC<EditStudentModalProps> = ({
   // Save updates
   const handleSubmit = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/students/${student.id}`, formData);
+      await axios.put(`/api/students/${student.id}`, formData);
       alert("Student updated successfully!");
       onStudentUpdated();
       onClose();

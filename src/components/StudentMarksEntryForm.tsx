@@ -76,7 +76,7 @@ const StudentMarksEntryForm = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/student-performance/students");
+        const res = await fetch("/api/student-performance/students");
         if (!res.ok) throw new Error("Failed to fetch students");
         const data: Student[] = await res.json();
         setStudents(data);
@@ -91,7 +91,7 @@ const StudentMarksEntryForm = () => {
   useEffect(() => {
     const fetchMarks = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/student-performance");
+        const res = await fetch("/api/student-performance");
         if (!res.ok) throw new Error("Failed to fetch marks");
         const data: ApiMark[] = await res.json();
 
@@ -141,7 +141,7 @@ const StudentMarksEntryForm = () => {
     try {
       if (!studentId) return setFilteredModules([]);
 
-      const res = await fetch(`http://localhost:5000/api/student-performance/modules?student_id=${studentId}`);
+      const res = await fetch(`/api/student-performance/modules?student_id=${studentId}`);
       if (!res.ok) throw new Error("Failed to fetch enrolled modules");
 
       const modules: Module[] = await res.json();
@@ -198,7 +198,7 @@ const StudentMarksEntryForm = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/student-performance", {
+      const response = await fetch("/api/student-performance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -209,7 +209,7 @@ const StudentMarksEntryForm = () => {
       }
 
       // Refresh marks after saving
-      const fetchRes = await fetch("http://localhost:5000/api/student-performance");
+      const fetchRes = await fetch("/api/student-performance");
       const data: ApiMark[] = await fetchRes.json();
       const mapped: Mark[] = data.map((item) => ({
         id: item.student_id ?? "",
@@ -259,7 +259,7 @@ const StudentMarksEntryForm = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/student-performance/${mark.id}/${mark.moduleId}`,
+        `/api/student-performance/${mark.id}/${mark.moduleId}`,
         { method: "DELETE" }
       );
       if (!response.ok) throw new Error("Failed to delete record");

@@ -77,11 +77,11 @@ export default function EnrollmentForm() {
       setIsLoadingDropdowns(true);
       try {
         const [courseRes, levelRes, intakeRes, branchRes, studentRes] = await Promise.all([
-          fetch("http://localhost:5000/api/courses"),
-          fetch("http://localhost:5000/api/levels"),
-          fetch("http://localhost:5000/api/intakes"),
-          fetch("http://localhost:5000/api/branches"),
-          fetch("http://localhost:5000/api/students"),
+          fetch("/api/courses"),
+          fetch("/api/levels"),
+          fetch("/api/intakes"),
+          fetch("/api/branches"),
+          fetch("/api/students"),
         ]);
 
         setCourses((await courseRes.json()) || []);
@@ -114,11 +114,11 @@ export default function EnrollmentForm() {
       const fetchModules = async () => {
         try {
           // Fetch all modules for the selected course and level
-          const allModulesRes = await fetch(`http://localhost:5000/api/modules/${course_id}/${level_id}`);
+          const allModulesRes = await fetch(`/api/modules/${course_id}/${level_id}`);
           const allModules = (await allModulesRes.json()) || [];
 
           // Fetch already enrolled modules for this student
-          const enrolledModulesRes = await fetch(`http://localhost:5000/api/student-modules/${student_id}/${course_id}/${level_id}`);
+          const enrolledModulesRes = await fetch(`/api/student-modules/${student_id}/${course_id}/${level_id}`);
           const enrolledModules = (await enrolledModulesRes.json()) || [];
 
           // Filter out already enrolled modules
@@ -159,7 +159,7 @@ export default function EnrollmentForm() {
   const handleStudentSelect = async (studentId: string) => {
     setFormData((prev) => ({ ...prev, student_id: studentId, branch_id: "" })); // Clear branch_id temporarily
     try {
-        const res = await fetch(`http://localhost:5000/api/students/${studentId}`);
+        const res = await fetch(`/api/students/${studentId}`);
         if (!res.ok) throw new Error("Failed to fetch student details");
         const student: Student = await res.json();
         
@@ -208,7 +208,7 @@ export default function EnrollmentForm() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/enrollments/create", {
+      const response = await fetch("/api/enrollments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

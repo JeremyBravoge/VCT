@@ -79,7 +79,7 @@ type ApiListResponse = {
   };
 };
 
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = ""; // use relative paths (/api, /uploads) so proxy/production base handles requests
 const DEFAULT_PAGE_LIMIT = 20;
 
 const fileTypeMap: Record<string, string> = {
@@ -147,7 +147,7 @@ export default function GraduationMedia() {
   // helper: normalize file path
   const buildFileUrl = (path: string) => {
     if (!path) return "";
-    return `${BACKEND_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+    return path.startsWith("http") ? path : (path.startsWith("/") ? path : `/${path}`);
   };
 
   const fetchFolders = useCallback(async () => {

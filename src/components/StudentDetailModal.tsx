@@ -234,8 +234,8 @@ export default function Students() {
     setLoading(true);
     try {
       const [studentsRes, coursesRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/students"),
-        axios.get("http://localhost:5000/api/courses")
+        axios.get("/api/students"),
+        axios.get("/api/courses")
       ]);
 
       const studentsData = studentsRes.data.map((student: Student) => ({
@@ -296,7 +296,7 @@ export default function Students() {
   const handleDeleteStudent = async (studentId: string) => {
     if (!confirm("Are you sure you want to delete this student? This action cannot be undone.")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/students/${studentId}`);
+      await axios.delete(`/api/students/${studentId}`);
       setStudents(prev => prev.filter(s => s.student_id !== studentId));
       if (selectedStudent?.student_id === studentId) {
         setSelectedStudent(null);
@@ -309,7 +309,7 @@ export default function Students() {
   // Fetch single student data
   const fetchStudentData = async (studentId: string) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/students/${studentId}`);
+      const response = await axios.get(`/api/students/${studentId}`);
       const studentData = {
         ...response.data,
         name: `${response.data.first_name || ''} ${response.data.last_name || ''}`.trim()
@@ -334,7 +334,7 @@ export default function Students() {
         formData.append('image', imageFile);
         
         const uploadRes = await axios.post(
-          'http://localhost:5000/api/upload/student',
+          '/api/upload/student',
           formData,
           { headers: { 'Content-Type': 'multipart/form-data' } }
         );
@@ -361,7 +361,7 @@ export default function Students() {
       };
 
       await axios.put(
-        `http://localhost:5000/api/students/${editingStudent.student_id}`,
+        `/api/students/${editingStudent.student_id}`,
         payload
       );
 
@@ -1886,7 +1886,7 @@ export default function Students() {
                         src={selectedStudent.image_url ? 
                           (selectedStudent.image_url.startsWith('http') 
                             ? selectedStudent.image_url 
-                            : `http://localhost:5000/${selectedStudent.image_url}`) 
+                            : `/${selectedStudent.image_url}`) 
                           : ''} 
                       />
                       <AvatarFallback className="bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 text-3xl font-bold">

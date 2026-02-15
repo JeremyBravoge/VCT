@@ -58,7 +58,7 @@ interface NewUser {
   password: string;
 }
 
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = ""; // use relative paths (/api, /uploads) so Vite proxy or production base handles requests
 
 const UserManagementPage = () => {
   // --- State Hooks ---
@@ -111,7 +111,7 @@ const UserManagementPage = () => {
     if (typeof image === "string") {
       if (image.startsWith("http")) return image;
       const filename = image.replace(/^\/uploads\//, "");
-      return `${BACKEND_URL}/uploads/${filename}`;
+      return `/uploads/${filename}`;
     }
     return URL.createObjectURL(image); // For local file preview
   };

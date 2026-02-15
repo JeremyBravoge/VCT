@@ -98,7 +98,7 @@ export function StudentDetailModal({ student, onClose }: StudentDetailModalProps
                         src={
                           student.image_url.startsWith("http")
                             ? student.image_url
-                            : `http://localhost:5000/${student.image_url}`
+                            : `/${student.image_url}`
                         }
                         alt={student.name || "Student"}
                         className="object-cover"

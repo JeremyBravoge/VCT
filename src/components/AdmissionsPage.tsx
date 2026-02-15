@@ -92,7 +92,7 @@ const AdmissionsPage: React.FC = () => {
 
       if (selectedFile) formData.append("photo", selectedFile);
 
-      const res = await fetch("http://localhost:5000/api/students/register", {
+      const res = await fetch("/api/students/register", {
         method: "POST",
         body: formData,
       });
